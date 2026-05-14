@@ -19,6 +19,8 @@ interface UserProfile {
   businessName?: string;
   phoneNumber?: string;
   whatsappNumber?: string;
+  shopNo?: string;
+  block?: string;
 }
 
 interface AuthContextType {

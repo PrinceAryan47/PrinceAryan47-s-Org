@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Product, SaleEntry } from '../types';
+import { Product, SaleRecord } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
 
 export function useWholesalerProducts(wholesalerId: string | undefined) {
@@ -36,7 +36,7 @@ export function useWholesalerProducts(wholesalerId: string | undefined) {
 }
 
 export function useWholesalerSales(wholesalerId: string | undefined, limitCount?: number) {
-  const [sales, setSales] = useState<SaleEntry[]>([]);
+  const [sales, setSales] = useState<SaleRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -12,6 +12,8 @@
         "businessName": { "type": "string" },
         "phoneNumber": { "type": "string" },
         "whatsappNumber": { "type": "string" },
+        "shopNo": { "type": "string" },
+        "block": { "type": "string" },
         "location": { "type": "string" },
         "businessDescription": { "type": "string" },
         "openingHours": { "type": "string" },
@@ -35,6 +37,11 @@
         "minQuantity": { "type": "number" },
         "stock": { "type": "number" },
         "images": { "type": "array", "items": { "type": "string" } },
+        "sellerName": { "type": "string" },
+        "sellerPhone": { "type": "string" },
+        "sellerWhatsapp": { "type": "string" },
+        "sellerShopNo": { "type": "string" },
+        "sellerBlock": { "type": "string" },
         "createdAt": { "type": "number" }
       },
       "required": ["sellerId", "name", "wholesalePrice", "stock"]

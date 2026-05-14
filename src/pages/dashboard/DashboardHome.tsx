@@ -23,7 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useWholesalerProducts, useWholesalerSales } from '../../hooks/useDashboardData';
 import { db } from '../../firebase';
 import { collection, query, where, onSnapshot, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
-import { Bell, CheckCircle2 } from 'lucide-react';
+import { Bell, CheckCircle2, Phone, MessageCircle } from 'lucide-react';
 
 export default function DashboardHome() {
   const { user } = useAuth();

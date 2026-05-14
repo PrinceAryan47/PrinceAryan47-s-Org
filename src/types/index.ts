@@ -12,6 +12,10 @@ export interface Product {
   images: string[];
   sellerId: string;
   sellerName: string;
+  sellerPhone?: string;
+  sellerWhatsapp?: string;
+  sellerShopNo?: string;
+  sellerBlock?: string;
   createdAt: number;
 }
 

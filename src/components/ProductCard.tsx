@@ -102,15 +102,36 @@ export default function ProductCard({ product }: ProductCardProps) {
               Add to Bag
             </button>
             <div className="grid grid-cols-2 gap-2">
-              <button className="flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-xl hover:bg-green-700 transition-all text-xs font-bold">
+              <a 
+                href={`https://wa.me/${product.sellerWhatsapp?.replace(/\D/g, '') || ''}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-xl hover:bg-green-700 transition-all text-[10px] font-bold"
+              >
                 <MessageCircle size={14} />
                 WhatsApp
-              </button>
-              <button className="flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition-all text-xs font-bold">
+              </a>
+              <a 
+                href={`tel:${product.sellerPhone || ''}`}
+                className="flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition-all text-[10px] font-bold"
+              >
                 <Phone size={14} />
                 Call
-              </button>
+              </a>
             </div>
+            {(product.sellerPhone || product.sellerWhatsapp) && (
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex justify-between items-center text-[8px] text-gray-400 font-bold uppercase tracking-tight px-1">
+                  <span className="flex items-center gap-1"><Phone size={8} /> {product.sellerPhone || 'N/A'}</span>
+                  <span className="flex items-center gap-1"><MessageCircle size={8} /> {product.sellerWhatsapp || 'N/A'}</span>
+                </div>
+                {(product.sellerShopNo || product.sellerBlock) && (
+                  <div className="text-[8px] text-blue-600 font-black uppercase tracking-widest px-1 text-center bg-blue-50 py-1 rounded-lg">
+                    Ham Grounds: {product.sellerShopNo ? `Shop ${product.sellerShopNo}` : ''} {product.sellerBlock ? `, ${product.sellerBlock}` : ''}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

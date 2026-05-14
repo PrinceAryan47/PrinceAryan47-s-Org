@@ -36,6 +36,10 @@ export default function InventoryList() {
         price: Number(newProduct.wholesalePrice) * 1.2, // Rough retail estimate
         sellerId: user.uid,
         sellerName: user.displayName || user.email,
+        sellerPhone: (user as any).phoneNumber || null,
+        sellerWhatsapp: (user as any).whatsappNumber || null,
+        sellerShopNo: (user as any).shopNo || null,
+        sellerBlock: (user as any).block || null,
         images: [],
         createdAt: serverTimestamp(),
       });

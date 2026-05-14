@@ -18,7 +18,9 @@ export default function Register() {
     password: '',
     phoneNumber: '',
     whatsappNumber: '',
-    businessName: ''
+    businessName: '',
+    shopNo: '',
+    block: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,6 +43,8 @@ export default function Register() {
         phoneNumber: formData.phoneNumber,
         whatsappNumber: formData.whatsappNumber,
         businessName: role === 'wholesaler' ? formData.businessName : null,
+        shopNo: role === 'wholesaler' ? formData.shopNo : null,
+        block: role === 'wholesaler' ? formData.block : null,
         joinedAt: serverTimestamp(),
         email: formData.email
       });
@@ -170,18 +174,44 @@ export default function Register() {
               </div>
 
               {role === 'wholesaler' && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Business Name</label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                    <input 
-                      required={role === 'wholesaler'}
-                      type="text" 
-                      className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
-                      placeholder="Hammer Grounds Wholesalers" 
-                      value={formData.businessName}
-                      onChange={(e) => setFormData({...formData, businessName: e.target.value})}
-                    />
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Business Name</label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                      <input 
+                        required={role === 'wholesaler'}
+                        type="text" 
+                        className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
+                        placeholder="Hammer Grounds Wholesalers" 
+                        value={formData.businessName}
+                        onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Shop No.</label>
+                       <input 
+                        required={role === 'wholesaler'}
+                        type="text" 
+                        className="w-full px-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
+                        placeholder="e.g. 102" 
+                        value={formData.shopNo}
+                        onChange={(e) => setFormData({...formData, shopNo: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Block</label>
+                       <input 
+                        required={role === 'wholesaler'}
+                        type="text" 
+                        className="w-full px-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
+                        placeholder="e.g. Block B" 
+                        value={formData.block}
+                        onChange={(e) => setFormData({...formData, block: e.target.value})}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
