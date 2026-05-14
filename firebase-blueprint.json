@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile for buyers and wholesalers",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["buyer", "wholesaler"] },
+        "businessName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "location": { "type": "string" },
+        "businessDescription": { "type": "string" },
+        "openingHours": { "type": "string" },
+        "returnPolicy": { "type": "string" }
+      },
+      "required": ["uid", "role"]
+    },
+    "product": {
+      "title": "Product",
+      "description": "Wholesale product listing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "wholesalePrice": { "type": "number" },
+        "retailPrice": { "type": "number" },
+        "costPrice": { "type": "number" },
+        "minQuantity": { "type": "number" },
+        "stock": { "type": "number" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["sellerId", "name", "wholesalePrice", "stock"]
+    },
+    "order": {
+      "title": "Order",
+      "description": "Wholesale order between buyer and seller",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "shipped", "delivered", "cancelled"] },
+        "items": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "productId": { "type": "string" },
+              "quantity": { "type": "number" },
+              "price": { "type": "number" }
+            }
+          }
+        },
+        "totalAmount": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["buyerId", "sellerId", "status", "totalAmount"]
+    },
+    "sale": {
+      "title": "SaleRecord",
+      "description": "Record of a sale for the digital ledger",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "salePrice": { "type": "number" },
+        "costPrice": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "profit": { "type": "number" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["sellerId", "totalAmount", "createdAt"]
+    },
+    "notification": {
+      "title": "Notification",
+      "description": "Buyer inquiry notification",
+      "type": "object",
+      "properties": {
+        "wholesalerId": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "buyerPhone": { "type": "string" },
+        "buyerWhatsapp": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "type": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["wholesalerId", "buyerId", "message"]
+    }
+  },
+  "firestore": {
+    "users": { "schema": "user", "description": "Collection of user profiles" },
+    "products": { "schema": "product", "description": "Collection of all products in the marketplace" },
+    "orders": { "schema": "order", "description": "Collection of orders" },
+    "sales": { "schema": "sale", "description": "Digital ledger history for all sellers" },
+    "notifications": { "schema": "notification", "description": "Buyer inquiries sent to wholesalers" }
+  }
+}
