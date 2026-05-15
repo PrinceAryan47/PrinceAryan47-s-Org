@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { getAuthErrorMessage } from '../lib/authUtils';
 
 export default function Login() {
   const [role, setRole] = useState<'buyer' | 'wholesaler'>('buyer');
@@ -23,7 +24,7 @@ export default function Login() {
     setError(null);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email.trim(), formData.password);
       const user = userCredential.user;
 
       // Verify role
@@ -41,7 +42,7 @@ export default function Login() {
       navigate(role === 'wholesaler' ? '/dashboard' : '/');
     } catch (err: any) {
       console.error(err);
-      setError('Invalid email or password');
+      setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -20,15 +20,17 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
-import { useWholesalerProducts, useWholesalerSales } from '../../hooks/useDashboardData';
+import { useWholesalerProducts, useWholesalerSales, useWholesalerReviews } from '../../hooks/useDashboardData';
 import { db } from '../../firebase';
 import { collection, query, where, onSnapshot, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
-import { Bell, CheckCircle2, Phone, MessageCircle } from 'lucide-react';
+import { Bell, CheckCircle2, Phone, MessageCircle, Star, MessageSquare } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function DashboardHome() {
   const { user } = useAuth();
   const { products, loading: productsLoading } = useWholesalerProducts(user?.uid);
   const { sales, loading: salesLoading } = useWholesalerSales(user?.uid, 5);
+  const { reviews, loading: reviewsLoading } = useWholesalerReviews(user?.uid);
   const [notifications, setNotifications] = React.useState<any[]>([]);
 
   React.useEffect(() => {
@@ -64,7 +66,7 @@ export default function DashboardHome() {
     <div className="space-y-8 pb-10">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, Hammer Grounds Wholesaler!</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome back, HAM GROUNDS Wholesaler!</h1>
           <p className="text-gray-500 text-sm">Here's your business performance summary for today.</p>
         </div>
         <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 font-semibold">
@@ -283,6 +285,73 @@ export default function DashboardHome() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Buyer Feedback Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
+              <MessageSquare className="text-blue-600" size={20} />
+              Recent Buyer Feedback
+            </h3>
+            <div className="flex items-center gap-1">
+              <Star className="text-yellow-400 fill-yellow-400" size={16} />
+              <span className="text-lg font-black text-gray-900">
+                {reviews.length > 0 
+                  ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) 
+                  : 'N/A'
+                }
+              </span>
+              <span className="text-xs font-bold text-gray-400 uppercase ml-1">Avg Rating</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {reviewsLoading ? (
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-50 rounded-3xl animate-pulse" />
+              ))
+            ) : reviews.length > 0 ? (
+              reviews.slice(0, 6).map((review) => (
+                <div key={review.id} className="p-6 bg-gray-50/50 rounded-3xl border border-gray-50 space-y-3 relative group">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-xs font-black text-gray-900">{review.buyerName}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                        {formatDistanceToNow(review.createdAt)} ago
+                      </p>
+                    </div>
+                    <div className="flex gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          size={10} 
+                          className={i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 font-medium line-clamp-3 italic">
+                    "{review.comment}"
+                  </p>
+                  <div className="pt-2">
+                    <span className="text-[9px] font-black text-blue-600 uppercase tracking-tighter bg-blue-50 px-2 py-0.5 rounded">
+                      Ref Product ID: {review.productId.slice(0, 8)}...
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center space-y-4">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-200">
+                  <MessageSquare size={32} />
+                </div>
+                <p className="text-gray-400 font-black uppercase text-xs tracking-widest">No customer feedback yet</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ export default function Contact() {
           <div className="space-y-4">
              <h1 className="text-4xl md:text-5xl font-black text-gray-900">Get in Touch</h1>
              <p className="text-lg text-gray-500 max-w-lg">
-                Have questions about becoming a wholesaler? Need help with your orders? Our team at Hammer Grounds is ready to support you.
+                Have questions about becoming a wholesaler? Need help with your orders? Our team at HAM GROUNDS is ready to support you.
              </p>
           </div>
 
@@ -32,8 +32,8 @@ export default function Contact() {
                </div>
                <div>
                   <h4 className="font-bold text-gray-900">Call Us</h4>
-                  <p className="text-sm text-gray-500">Main Line: +256 700 000 000</p>
-                  <p className="text-sm text-gray-500">Seller Support: +256 701 000 000</p>
+                  <p className="text-sm text-gray-500">Main Line: +256 750 619 853</p>
+                  <p className="text-sm text-gray-500">WhatsApp: +256 750 619 853</p>
                </div>
             </div>
 

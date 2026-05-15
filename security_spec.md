@@ -1,31 +1,25 @@
-# Security Specification for HAM Grounds
+# Security Specification - HAM GROUNDS
 
 ## 1. Data Invariants
-- A user can only edit their own profile.
-- A user cannot change their own role after creation (must be set by admin or fixed at registration).
-- Products can only be created/edited/deleted by the wholesaler who owns them.
-- Orders can only be viewed/updated by the buyer or the wholesaler involved in the order.
-- Sales records (ledger) are strictly private to the wholesaler who generated them.
-- All timestamps must be server-generated (`request.time`).
-- All numeric values (price, stock, quantity) must be non-negative.
+- A product must have a valid `sellerId`.
+- An order must involve a `buyerId` and `sellerId`.
+- A review must reference an existing `productId` and be created by a `buyerId`.
+- A sale or expense record must belong to a `sellerId`.
+- Notifications must be between a `buyerId` and a `wholesalerId`.
 
-## 2. The "Dirty Dozen" Payloads (Denial Tests)
+## 2. The "Dirty Dozen" Payloads (Testing Denials)
+1. **Unauthorized Product Update**: A user trying to update a product they don't own.
+2. **Shadow Field Injection**: Adding an `isAdmin` field to a user profile.
+3. **Identity Spoofing**: Creating a review with someone else's `buyerId`.
+4. **Relational Sync Bypass**: Creating a sale for a product that doesn't exist.
+5. **PII Leak**: A wholesaler trying to read another wholesaler's private sales records.
+6. **State Shortcutting**: Updating an order status from `pending` directly to `delivered` by the buyer.
+7. **Negative Amount**: Recording an expense with a negative amount.
+8. **Orphaned Notification**: Sending a notification to a non-existent wholesaler.
+9. **Spam Reviews**: A user creating 1000 reviews in 1 second (Rate limiting).
+10. **Resource Poisoning**: Using a 1MB string for a product name.
+11. **Email Spoofing**: Attempting a write with `email_verified: false` when required.
+12. **Price Manipulation**: A buyer trying to update the price of a product.
 
-1. **Identity Spoofing**: Buyer A tries to update Buyer B's profile.
-2. **Privilege Escalation**: Buyer tries to change their role to 'wholesaler' via direct Firestore update.
-3. **Orphaned Product**: User tries to create a product for a wholesaler UID that isn't theirs.
-4. **Price Poisoning**: Wholesaler tries to set a negative `wholesalePrice`.
-5. **Stock Poisoning**: Wholesaler tries to set a negative `stock`.
-6. **Unauthorized Read**: Buyer A tries to read Wholesaler B's `sales` ledger.
-7. **Order Hijacking**: Buyer A tries to read an order belonging to Buyer C.
-8. **Status Shortcut**: Buyer tries to mark an order as 'delivered' when only the wholesaler can update status transitions or vice-versa.
-9. **Creation Timestamp Spoof**: User tries to set `createdAt` to a date in the past.
-10. **Shadow Field Injection**: User tries to add an `isAdmin: true` field to their profile.
-11. **Inventory Deduction Bypass**: Record a sale without reducing stock (atomicity check - logic handled by app but rules should ensure records are valid).
-12. **Malicious ID**: Attempting to create a document with a 2MB string as ID.
-
-## 3. Test Runner Plan
-The `firestore.rules.test.ts` will focus on:
-- Validating that `request.auth.uid` matches the document owner.
-- Validating schema shapes via helpers.
-- Validating state transitions.
+## 3. Test Runner (Draft)
+A comprehensive test suite will verify these denials.

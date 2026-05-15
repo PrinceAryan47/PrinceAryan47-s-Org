@@ -14,6 +14,8 @@ import Register from './pages/Register';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import InventoryList from './pages/dashboard/InventoryList';
 import SalesLedger from './pages/dashboard/SalesLedger';
+import GrowthAnalytics from './pages/dashboard/GrowthAnalytics';
+import BusinessProfile from './pages/dashboard/BusinessProfile';
 
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -24,7 +26,12 @@ import Cart from './pages/Cart';
 
 // Placeholder components for other routes
 const Shops = () => <div className="p-20 text-center">Wholesale Shops Placeholder</div>;
-const Profile = () => <div className="p-20 text-center">Buyer Profile Placeholder</div>;
+const Profile = () => <div className="p-20 text-center text-gray-500 italic">User Profile Section - Coming Soon</div>;
+const ManageOrders = () => <div className="p-20 text-center text-gray-500 italic">Order Management System - Coming Soon</div>;
+const BuyerOrders = () => <div className="p-20 text-center text-gray-500 italic">My Orders - Coming Soon</div>;
+const Favorites = () => <div className="p-20 text-center text-gray-500 italic">My Favorite Products - Coming Soon</div>;
+const Inquiries = () => <div className="p-20 text-center text-gray-500 italic">My Inquiries - Coming Soon</div>;
+const PurchaseHistory = () => <div className="p-20 text-center text-gray-500 italic">Purchase History - Coming Soon</div>;
 
 export default function App() {
   return (
@@ -48,8 +55,17 @@ export default function App() {
                 <Route path="/dashboard" element={<DashboardHome />} />
                 <Route path="/dashboard/inventory" element={<InventoryList />} />
                 <Route path="/dashboard/ledger" element={<SalesLedger />} />
+                <Route path="/dashboard/orders" element={<ManageOrders />} />
+                <Route path="/dashboard/analytics" element={<GrowthAnalytics />} />
+                <Route path="/dashboard/settings" element={<BusinessProfile />} />
                 
+                {/* Buyer Hub Routes */}
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/orders" element={<BuyerOrders />} />
+                <Route path="/favorites" element={<Favorites />} />
+                <Route path="/inquiries" element={<Inquiries />} />
+                <Route path="/history" element={<PurchaseHistory />} />
+                
                 <Route path="*" element={<div className="p-20 text-center">404 - Page Not Found</div>} />
               </Routes>
             </Suspense>

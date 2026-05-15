@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Product, SaleRecord } from '../types';
+import { Product, SaleRecord, ExpenseRecord, Review } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
 
 export function useWholesalerProducts(wholesalerId: string | undefined) {
@@ -68,4 +68,102 @@ export function useWholesalerSales(wholesalerId: string | undefined, limitCount?
   }, [wholesalerId, limitCount]);
 
   return { sales, loading };
+}
+
+export function useWholesalerExpenses(wholesalerId: string | undefined) {
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!wholesalerId) return;
+
+    const q = query(
+      collection(db, 'expenses'),
+      where('sellerId', '==', wholesalerId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const expensesList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ExpenseRecord[];
+      setExpenses(expensesList);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'expenses');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [wholesalerId]);
+
+  return { expenses, loading };
+}
+
+export function useProductReviews(productId: string | undefined) {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!productId) return;
+
+    const q = query(
+      collection(db, 'reviews'),
+      where('productId', '==', productId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const reviewsList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Review[];
+      setReviews(reviewsList);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'reviews');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [productId]);
+
+  return { reviews, loading };
+}
+
+export function useWholesalerReviews(wholesalerId: string | undefined) {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!wholesalerId) {
+      setLoading(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'reviews'),
+      where('wholesalerId', '==', wholesalerId),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const reviewsList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Review[];
+      
+      setReviews(reviewsList);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'reviews');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [wholesalerId]);
+
+  return { reviews, loading };
 }

@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuthErrorMessage } from '../lib/authUtils';
 
 export default function Register() {
   const [role, setRole] = useState<'buyer' | 'wholesaler'>('buyer');
@@ -29,7 +30,7 @@ export default function Register() {
     setError(null);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email.trim(), formData.password);
       const user = userCredential.user;
 
       await updateProfile(user, {
@@ -52,7 +53,7 @@ export default function Register() {
       navigate(role === 'wholesaler' ? '/dashboard' : '/');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to create account');
+      setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -183,7 +184,7 @@ export default function Register() {
                         required={role === 'wholesaler'}
                         type="text" 
                         className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
-                        placeholder="Hammer Grounds Wholesalers" 
+                        placeholder="HAM GROUNDS Wholesalers" 
                         value={formData.businessName}
                         onChange={(e) => setFormData({...formData, businessName: e.target.value})}
                       />

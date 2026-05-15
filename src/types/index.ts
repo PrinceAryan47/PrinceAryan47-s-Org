@@ -54,6 +54,17 @@ export interface Category {
   icon: string;
 }
 
+export interface Review {
+  id: string;
+  productId: string;
+  wholesalerId: string;
+  buyerId: string;
+  buyerName: string;
+  rating: number; // 1-5
+  comment: string;
+  createdAt: number;
+}
+
 export interface SaleRecord {
   id: string;
   sellerId: string;
@@ -63,5 +74,16 @@ export interface SaleRecord {
   salePrice: number;
   totalAmount: number;
   costPrice: number; // For profit calculation
-  date: number;
+  profit: number;
+  type: string;
+  createdAt: number;
+}
+
+export interface ExpenseRecord {
+  id: string;
+  sellerId: string;
+  description: string;
+  amount: number;
+  category: string;
+  createdAt: number;
 }

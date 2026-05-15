@@ -90,6 +90,36 @@
       },
       "required": ["sellerId", "totalAmount", "createdAt"]
     },
+    "expense": {
+      "title": "ExpenseRecord",
+      "description": "Business expenditure record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["sellerId", "amount", "createdAt"]
+    },
+    "review": {
+      "title": "Review",
+      "description": "Product review from a buyer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "wholesalerId": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "rating": { "type": "number", "minimum": 1, "maximum": 5 },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["productId", "buyerId", "rating", "createdAt"]
+    },
     "notification": {
       "title": "Notification",
       "description": "Buyer inquiry notification",
@@ -115,6 +145,8 @@
     "products": { "schema": "product", "description": "Collection of all products in the marketplace" },
     "orders": { "schema": "order", "description": "Collection of orders" },
     "sales": { "schema": "sale", "description": "Digital ledger history for all sellers" },
+    "expenses": { "schema": "expense", "description": "Business expenditure tracking" },
+    "reviews": { "schema": "review", "description": "Collection of product reviews" },
     "notifications": { "schema": "notification", "description": "Buyer inquiries sent to wholesalers" }
   }
 }

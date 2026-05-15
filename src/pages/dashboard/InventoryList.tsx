@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Filter, Plus, Edit2, Trash2, Package, AlertTriangle, PackageSearch } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Search, Filter, Plus, Edit2, Trash2, Package, AlertTriangle, PackageSearch, Image as ImageIcon, Camera, Upload, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { useWholesalerProducts } from '../../hooks/useDashboardData';
@@ -11,6 +11,7 @@ export default function InventoryList() {
   const { products, loading } = useWholesalerProducts(user?.uid);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [newProduct, setNewProduct] = useState({
@@ -19,8 +20,24 @@ export default function InventoryList() {
     costPrice: '',
     stock: '',
     minQuantity: '',
-    category: 'Fashion Clothing'
+    category: 'Fashion Clothing',
+    imageUrl: ''
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500000) { // 500KB limit for base64 storage in firestore
+        alert("File is too large. Please use an image smaller than 500KB or provide a URL.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewProduct({ ...newProduct, imageUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +57,7 @@ export default function InventoryList() {
         sellerWhatsapp: (user as any).whatsappNumber || null,
         sellerShopNo: (user as any).shopNo || null,
         sellerBlock: (user as any).block || null,
-        images: [],
+        images: newProduct.imageUrl ? [newProduct.imageUrl] : [],
         createdAt: serverTimestamp(),
       });
       setIsAdding(false);
@@ -50,7 +67,8 @@ export default function InventoryList() {
         costPrice: '',
         stock: '',
         minQuantity: '',
-        category: 'Fashion Clothing'
+        category: 'Fashion Clothing',
+        imageUrl: ''
       });
     } catch (error) {
       console.error('Error adding product:', error);
@@ -116,27 +134,37 @@ export default function InventoryList() {
             <motion.div
               key={item.id}
               layout
-              className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group overflow-hidden"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className="text-3xl">📦</div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16} /></button>
+              <div className="relative aspect-video bg-gray-50 flex items-center justify-center overflow-hidden">
+                {item.images && item.images[0] ? (
+                  <img 
+                    src={item.images[0]} 
+                    alt={item.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <Package size={32} className="text-gray-200" />
+                )}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button className="p-1.5 bg-white/90 backdrop-blur-sm text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg shadow-sm"><Edit2 size={16} /></button>
                   <button 
                     onClick={() => handleDelete(item.id)}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                    className="p-1.5 bg-white/90 backdrop-blur-sm text-gray-400 hover:text-red-500 hover:bg-white rounded-lg shadow-sm"
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
               </div>
               
-              <div className="space-y-1">
-                <h3 className="font-bold text-gray-900 line-clamp-1">{item.name}</h3>
-                <p className="text-xs text-blue-600 font-semibold uppercase">{item.category}</p>
-              </div>
+              <div className="p-6 pt-4">
+                <div className="space-y-1">
+                  <h3 className="font-bold text-gray-900 line-clamp-1">{item.name}</h3>
+                  <p className="text-xs text-blue-600 font-semibold uppercase">{item.category}</p>
+                </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="mt-4 grid grid-cols-2 gap-4">
                 <div className="p-3 bg-gray-50 rounded-xl">
                   <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider text-center">Wholesale</p>
                   <p className="font-bold text-gray-900 text-xs text-center">UGX {item.wholesalePrice.toLocaleString()}</p>
@@ -154,7 +182,8 @@ export default function InventoryList() {
                  <span>MOQ: {item.minQuantity}</span>
                  <span className="text-gray-900">Profit/Unit: UGX {(item.wholesalePrice - (item.costPrice || 0)).toLocaleString()}</span>
               </div>
-            </motion.div>
+            </div>
+          </motion.div>
           ))
         ) : (
           <div className="col-span-full py-20 text-center space-y-4">
@@ -185,6 +214,56 @@ export default function InventoryList() {
             >
               <h2 className="text-2xl font-bold">Add to Inventory</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Product Image</label>
+                  <div className="flex flex-col gap-4">
+                    {newProduct.imageUrl ? (
+                      <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-gray-100 group">
+                        <img src={newProduct.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                        <button 
+                          onClick={() => setNewProduct({...newProduct, imageUrl: ''})}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="aspect-video w-full border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-400"
+                      >
+                        <div className="p-3 bg-gray-50 rounded-full">
+                          <Upload size={24} />
+                        </div>
+                        <p className="text-xs font-bold">Click to upload image or drag & drop</p>
+                        <p className="text-[10px]">Max size: 500KB</p>
+                      </div>
+                    )}
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <ImageIcon size={16} />
+                      </div>
+                      <input 
+                        type="text" 
+                        placeholder="Or paste image URL here..." 
+                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        value={newProduct.imageUrl}
+                        onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})}
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400">
+                      Tip: You can use high-quality URLs from unsplash.com or upload a small file.
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Product Name</label>
                   <input 

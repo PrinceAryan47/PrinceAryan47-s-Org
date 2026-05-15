@@ -19,7 +19,7 @@ export default function Products() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold text-gray-900">Wholesale Marketplace</h1>
-          <p className="text-gray-500">Discover direct bulk deals from Hammer Grounds wholesalers.</p>
+          <p className="text-gray-500">Discover direct bulk deals from HAM GROUNDS wholesalers.</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="flex items-center bg-gray-100 p-1 rounded-xl">
