@@ -40,23 +40,27 @@ export default function Categories() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
-            className={`group p-8 rounded-[2.5rem] border ${cat.border} ${cat.color} hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden`}
           >
-            <div className="relative z-10 space-y-6">
-               <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center">
-                  <cat.icon size={32} />
-               </div>
-               <div>
-                  <h3 className="text-2xl font-bold text-gray-900">{cat.name}</h3>
-                  <p className="text-sm font-medium opacity-70 mt-1">{cat.count} listings available</p>
-               </div>
-               <div className="flex items-center gap-2 font-bold text-sm">
-                  <span>Explore All</span>
-                  <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-               </div>
-            </div>
-            {/* Decorative background shape */}
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+            <Link 
+              to={`/products?category=${encodeURIComponent(cat.name)}`}
+              className={`group block p-8 rounded-[2.5rem] border ${cat.border} ${cat.color} hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden`}
+            >
+              <div className="relative z-10 space-y-6">
+                 <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                    <cat.icon size={32} />
+                 </div>
+                 <div>
+                    <h3 className="text-2xl font-bold text-gray-900">{cat.name}</h3>
+                    <p className="text-sm font-medium opacity-70 mt-1">{cat.count} listings available</p>
+                 </div>
+                 <div className="flex items-center gap-2 font-bold text-sm">
+                    <span>Explore All</span>
+                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                 </div>
+              </div>
+              {/* Decorative background shape */}
+              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+            </Link>
           </motion.div>
         ))}
       </div>

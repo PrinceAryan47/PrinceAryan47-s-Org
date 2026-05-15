@@ -59,9 +59,9 @@ service cloud.firestore {
       }
 
       allow get, list: if true;
-      allow create: if isSignedIn() && isVerified() && isValidProduct(incoming()) && isValidId(productId);
-      allow update: if isSignedIn() && isVerified() && existing().sellerId == request.auth.uid && isValidProduct(incoming());
-      allow delete: if isSignedIn() && isVerified() && existing().sellerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidProduct(incoming()) && isValidId(productId);
+      allow update: if isSignedIn() && existing().sellerId == request.auth.uid && isValidProduct(incoming());
+      allow delete: if isSignedIn() && existing().sellerId == request.auth.uid;
     }
 
     // 3. Orders Collection
@@ -73,8 +73,8 @@ service cloud.firestore {
 
       allow get: if isSignedIn() && (existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid);
       allow list: if isSignedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
-      allow create: if isSignedIn() && isVerified() && incoming().buyerId == request.auth.uid && isValidOrder(incoming());
-      allow update: if isSignedIn() && isVerified() 
+      allow create: if isSignedIn() && incoming().buyerId == request.auth.uid && isValidOrder(incoming());
+      allow update: if isSignedIn() 
         && (existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid)
         && (
           // Action: Wholesaler updates status
@@ -88,14 +88,14 @@ service cloud.firestore {
     match /sales/{saleId} {
       allow get: if isSignedIn() && existing().sellerId == request.auth.uid;
       allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
-      allow create: if isSignedIn() && isVerified() && incoming().sellerId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().sellerId == request.auth.uid;
     }
 
     // 5. Business Expenses (Wholesaler only)
     match /expenses/{expenseId} {
       allow get: if isSignedIn() && existing().sellerId == request.auth.uid;
       allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
-      allow create: if isSignedIn() && isVerified() && incoming().sellerId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().sellerId == request.auth.uid;
     }
 
     // 6. Product Reviews
@@ -108,16 +108,16 @@ service cloud.firestore {
       }
 
       allow get, list: if true; // Public reviews
-      allow create: if isSignedIn() && isVerified() && isValidReview(incoming()) && isValidId(reviewId);
-      allow delete: if isSignedIn() && isVerified() && existing().buyerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidReview(incoming()) && isValidId(reviewId);
+      allow delete: if isSignedIn() && existing().buyerId == request.auth.uid;
     }
 
     // 7. Notifications (Inquiries)
     match /notifications/{notifId} {
       allow get: if isSignedIn() && (existing().wholesalerId == request.auth.uid || existing().buyerId == request.auth.uid);
       allow list: if isSignedIn() && (resource.data.wholesalerId == request.auth.uid || resource.data.buyerId == request.auth.uid);
-      allow create: if isSignedIn() && isVerified() && incoming().buyerId == request.auth.uid;
-      allow update: if isSignedIn() && isVerified() && existing().wholesalerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow create: if isSignedIn() && incoming().buyerId == request.auth.uid;
+      allow update: if isSignedIn() && existing().wholesalerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
     }
   }
 }

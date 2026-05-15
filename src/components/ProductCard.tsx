@@ -19,6 +19,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { user } = useAuth();
   const { reviews, loading: reviewsLoading } = useProductReviews(product.id);
   const [showDetails, setShowDetails] = React.useState(false);
+  const [activeImageIndex, setActiveImageIndex] = React.useState(0);
 
   const averageRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
@@ -189,16 +190,35 @@ export default function ProductCard({ product }: ProductCardProps) {
                 <X size={20} />
               </button>
 
-              <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
-                {product.images && product.images.length > 0 ? (
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="max-w-full max-h-full object-contain rounded-2xl shadow-xl shadow-gray-200"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <Package size={100} className="text-gray-200" />
+              <div className="flex-1 bg-gray-50 flex flex-col items-center justify-center p-8 overflow-hidden">
+                <div className="flex-1 flex items-center justify-center w-full">
+                  {product.images && product.images.length > 0 ? (
+                    <img
+                      key={product.images[activeImageIndex]}
+                      src={product.images[activeImageIndex]}
+                      alt={product.name}
+                      className="max-w-full max-h-full object-contain rounded-2xl shadow-xl shadow-gray-200"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <Package size={100} className="text-gray-200" />
+                  )}
+                </div>
+                
+                {product.images && product.images.length > 1 && (
+                  <div className="mt-8 flex gap-3 overflow-x-auto pb-2 w-full justify-center no-scrollbar">
+                    {product.images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${
+                          activeImageIndex === idx ? 'border-blue-600 scale-110' : 'border-transparent opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
 

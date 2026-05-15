@@ -79,10 +79,14 @@ export default function Home() {
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.1 }}
               viewport={{ once: true }}
-              className={`p-6 rounded-3xl ${cat.color} flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-lg transition-all`}
             >
-              <span className="text-4xl">{cat.icon}</span>
-              <span className="font-bold">{cat.name}</span>
+              <Link
+                to={`/products?category=${encodeURIComponent(cat.name)}`}
+                className={`p-6 rounded-3xl ${cat.color} flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-lg transition-all h-full block`}
+              >
+                <span className="text-4xl">{cat.icon}</span>
+                <span className="font-bold text-center">{cat.name}</span>
+              </Link>
             </motion.div>
           ))}
         </div>

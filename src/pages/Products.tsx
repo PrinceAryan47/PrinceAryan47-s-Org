@@ -1,18 +1,41 @@
-import React, { useState } from 'react';
-import { Search, SlidersHorizontal, ChevronDown, Grid, List as ListIcon, PackageSearch } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, SlidersHorizontal, ChevronDown, Grid, List as ListIcon, PackageSearch, X } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import { motion } from 'motion/react';
 import { useProducts } from '../hooks/useProducts';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function Products() {
   const { products, loading } = useProducts();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
-    p.category?.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const category = params.get('category');
+    if (category) {
+      setCategoryFilter(category);
+    } else {
+      setCategoryFilter(null);
+    }
+  }, [location.search]);
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
+                         p.category?.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = !categoryFilter || p.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const clearCategoryFilter = () => {
+    setCategoryFilter(null);
+    const params = new URLSearchParams(location.search);
+    params.delete('category');
+    navigate({ search: params.toString() });
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -45,15 +68,32 @@ export default function Products() {
       </div>
 
       {/* Global Search */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
-        <input 
-          type="text" 
-          placeholder="Search for products, categories, or wholesalers..."
-          className="w-full pl-14 pr-6 py-5 bg-white border border-gray-200 rounded-[2rem] text-lg outline-none focus:ring-4 focus:ring-blue-100 shadow-sm transition-all"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="space-y-4">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
+          <input 
+            type="text" 
+            placeholder="Search for products, categories, or wholesalers..."
+            className="w-full pl-14 pr-6 py-5 bg-white border border-gray-200 rounded-[2rem] text-lg outline-none focus:ring-4 focus:ring-blue-100 shadow-sm transition-all"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {categoryFilter && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Filtered by:</span>
+            <div className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full border border-blue-100 text-sm font-bold">
+              {categoryFilter}
+              <button 
+                onClick={clearCategoryFilter}
+                className="p-0.5 hover:bg-blue-100 rounded-full transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Product Grid */}

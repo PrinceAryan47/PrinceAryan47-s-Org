@@ -3,8 +3,9 @@ import { Search, Filter, Plus, Edit2, Trash2, Package, AlertTriangle, PackageSea
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { useWholesalerProducts } from '../../hooks/useDashboardData';
-import { db } from '../../firebase';
+import { db, storage } from '../../firebase';
 import { collection, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function InventoryList() {
   const { user } = useAuth();
@@ -14,29 +15,70 @@ export default function InventoryList() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
-  const [newProduct, setNewProduct] = useState({
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [formData, setFormData] = useState({
     name: '',
     wholesalePrice: '',
     costPrice: '',
     stock: '',
     minQuantity: '',
     category: 'Fashion Clothing',
-    imageUrl: ''
+    images: [] as string[],
+    description: ''
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 500000) { // 500KB limit for base64 storage in firestore
-        alert("File is too large. Please use an image smaller than 500KB or provide a URL.");
-        return;
+  const handleEdit = (product: any) => {
+    setCurrentId(product.id);
+    setFormData({
+      name: product.name,
+      wholesalePrice: product.wholesalePrice.toString(),
+      costPrice: (product.costPrice || 0).toString(),
+      stock: product.stock.toString(),
+      minQuantity: product.minQuantity.toString(),
+      category: product.category,
+      images: product.images || [],
+      description: product.description || ''
+    });
+    setIsEditing(true);
+    setIsAdding(true);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
+
+    setIsUploading(true);
+    const newImages = [...formData.images];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Storage path: products/{userId}/{timestamp}_{filename}
+        const storageRef = ref(storage, `products/${user.uid}/${Date.now()}_${file.name}`);
+        
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        
+        newImages.push(downloadURL);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewProduct({ ...newProduct, imageUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+
+      setFormData({ ...formData, images: newImages });
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      alert('Failed to upload one or more images. Please try again.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = [...formData.images];
+    newImages.splice(index, 1);
+    setFormData({ ...formData, images: newImages });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,34 +86,47 @@ export default function InventoryList() {
     if (!user) return;
 
     try {
-      await addDoc(collection(db, 'products'), {
-        ...newProduct,
-        wholesalePrice: Number(newProduct.wholesalePrice),
-        costPrice: Number(newProduct.costPrice),
-        stock: Number(newProduct.stock),
-        minQuantity: Number(newProduct.minQuantity),
-        price: Number(newProduct.wholesalePrice) * 1.2, // Rough retail estimate
-        sellerId: user.uid,
-        sellerName: user.displayName || user.email,
-        sellerPhone: (user as any).phoneNumber || null,
-        sellerWhatsapp: (user as any).whatsappNumber || null,
-        sellerShopNo: (user as any).shopNo || null,
-        sellerBlock: (user as any).block || null,
-        images: newProduct.imageUrl ? [newProduct.imageUrl] : [],
-        createdAt: serverTimestamp(),
-      });
+      const productData = {
+        ...formData,
+        wholesalePrice: Number(formData.wholesalePrice),
+        costPrice: Number(formData.costPrice),
+        stock: Number(formData.stock),
+        minQuantity: Number(formData.minQuantity),
+        price: Number(formData.wholesalePrice) * 1.2, // Rough retail estimate
+        images: formData.images,
+        updatedAt: serverTimestamp(),
+      };
+
+      if (isEditing && currentId) {
+        await updateDoc(doc(db, 'products', currentId), productData);
+      } else {
+        await addDoc(collection(db, 'products'), {
+          ...productData,
+          sellerId: user.uid,
+          sellerName: user.displayName || user.email,
+          sellerPhone: (user as any).phoneNumber || null,
+          sellerWhatsapp: (user as any).whatsappNumber || null,
+          sellerShopNo: (user as any).shopNo || null,
+          sellerBlock: (user as any).block || null,
+          createdAt: serverTimestamp(),
+        });
+      }
+
       setIsAdding(false);
-      setNewProduct({
+      setIsEditing(false);
+      setCurrentId(null);
+      setFormData({
         name: '',
         wholesalePrice: '',
         costPrice: '',
         stock: '',
         minQuantity: '',
         category: 'Fashion Clothing',
-        imageUrl: ''
+        images: [],
+        description: ''
       });
     } catch (error) {
-      console.error('Error adding product:', error);
+      console.error('Error saving product:', error);
     }
   };
 
@@ -97,7 +152,20 @@ export default function InventoryList() {
           <p className="text-gray-500 text-sm">Monitor stock levels and manage wholesale pricing.</p>
         </div>
         <button 
-          onClick={() => setIsAdding(true)}
+          onClick={() => {
+            setIsEditing(false);
+            setFormData({
+              name: '',
+              wholesalePrice: '',
+              costPrice: '',
+              stock: '',
+              minQuantity: '',
+              category: 'Fashion Clothing',
+              images: [],
+              description: ''
+            });
+            setIsAdding(true);
+          }}
           className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 font-semibold"
         >
           <Plus size={20} />
@@ -148,7 +216,12 @@ export default function InventoryList() {
                   <Package size={32} className="text-gray-200" />
                 )}
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="p-1.5 bg-white/90 backdrop-blur-sm text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg shadow-sm"><Edit2 size={16} /></button>
+                  <button 
+                    onClick={() => handleEdit(item)}
+                    className="p-1.5 bg-white/90 backdrop-blur-sm text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg shadow-sm"
+                  >
+                    <Edit2 size={16} />
+                  </button>
                   <button 
                     onClick={() => handleDelete(item.id)}
                     className="p-1.5 bg-white/90 backdrop-blur-sm text-gray-400 hover:text-red-500 hover:bg-white rounded-lg shadow-sm"
@@ -212,55 +285,79 @@ export default function InventoryList() {
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               className="bg-white w-full max-w-lg rounded-3xl p-8 relative shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto"
             >
-              <h2 className="text-2xl font-bold">Add to Inventory</h2>
+              <h2 className="text-2xl font-bold">{isEditing ? 'Edit Product' : 'Add to Inventory'}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Product Image</label>
-                  <div className="flex flex-col gap-4">
-                    {newProduct.imageUrl ? (
-                      <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-gray-100 group">
-                        <img src={newProduct.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                        <button 
-                          onClick={() => setNewProduct({...newProduct, imageUrl: ''})}
-                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="aspect-video w-full border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-400"
-                      >
-                        <div className="p-3 bg-gray-50 rounded-full">
-                          <Upload size={24} />
-                        </div>
-                        <p className="text-xs font-bold">Click to upload image or drag & drop</p>
-                        <p className="text-[10px]">Max size: 500KB</p>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Product Images</label>
+                  <div className="space-y-4">
+                    {formData.images.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {formData.images.map((url, idx) => (
+                          <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 group">
+                            <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                            <button 
+                              type="button"
+                              onClick={() => removeImage(idx)}
+                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
+                    
+                    <div 
+                      onClick={() => !isUploading && fileInputRef.current?.click()}
+                      className={`w-full border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-400 p-6 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                    >
+                      <div className="p-3 bg-gray-50 rounded-full">
+                        {isUploading ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <Upload size={24} />
+                          </motion.div>
+                        ) : (
+                          <Upload size={24} />
+                        )}
+                      </div>
+                      <p className="text-xs font-bold">
+                        {isUploading ? 'Uploading...' : 'Click to upload images or drag & drop'}
+                      </p>
+                      <p className="text-[10px]">Select multiple images if needed.</p>
+                    </div>
+                    
                     <input 
                       type="file" 
                       ref={fileInputRef}
                       className="hidden" 
                       accept="image/*"
+                      multiple
                       onChange={handleFileChange}
                     />
+
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                         <ImageIcon size={16} />
                       </div>
                       <input 
                         type="text" 
-                        placeholder="Or paste image URL here..." 
+                        placeholder="Add image by URL..." 
                         className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        value={newProduct.imageUrl}
-                        onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = (e.target as HTMLInputElement).value;
+                            if (val) {
+                              setFormData({...formData, images: [...formData.images, val]});
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }
+                        }}
                       />
                     </div>
-                    <p className="text-[10px] text-gray-400">
-                      Tip: You can use high-quality URLs from unsplash.com or upload a small file.
-                    </p>
                   </div>
                 </div>
 
@@ -271,10 +368,21 @@ export default function InventoryList() {
                     type="text" 
                     className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
                     placeholder="e.g. Bulk School Supplies" 
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
                   />
                 </div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                  <textarea 
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]" 
+                    placeholder="Describe your product features, quality, etc." 
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Cost Price (UGX)</label>
@@ -283,8 +391,8 @@ export default function InventoryList() {
                       type="number" 
                       className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="Your cost" 
-                      value={newProduct.costPrice}
-                      onChange={(e) => setNewProduct({...newProduct, costPrice: e.target.value})}
+                      value={formData.costPrice}
+                      onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
                     />
                   </div>
                   <div>
@@ -294,8 +402,8 @@ export default function InventoryList() {
                       type="number" 
                       className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="To buyers" 
-                      value={newProduct.wholesalePrice}
-                      onChange={(e) => setNewProduct({...newProduct, wholesalePrice: e.target.value})}
+                      value={formData.wholesalePrice}
+                      onChange={(e) => setFormData({...formData, wholesalePrice: e.target.value})}
                     />
                   </div>
                 </div>
@@ -307,8 +415,8 @@ export default function InventoryList() {
                       type="number" 
                       className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="Current" 
-                      value={newProduct.stock}
-                      onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
+                      value={formData.stock}
+                      onChange={(e) => setFormData({...formData, stock: e.target.value})}
                     />
                   </div>
                   <div>
@@ -318,16 +426,16 @@ export default function InventoryList() {
                       type="number" 
                       className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="MOQ" 
-                      value={newProduct.minQuantity}
-                      onChange={(e) => setNewProduct({...newProduct, minQuantity: e.target.value})}
+                      value={formData.minQuantity}
+                      onChange={(e) => setFormData({...formData, minQuantity: e.target.value})}
                     />
                   </div>
                    <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
                     <select 
                       className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      value={newProduct.category}
-                      onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                      value={formData.category}
+                      onChange={(e) => setFormData({...formData, category: e.target.value})}
                     >
                         <option>Fashion Clothing</option>
                         <option>Footwear & Leather</option>
@@ -339,8 +447,14 @@ export default function InventoryList() {
                   </div>
                 </div>
                 <div className="pt-4 flex gap-3">
-                  <button type="button" onClick={() => setIsAdding(false)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
-                  <button type="submit" className="flex-[2] px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20">Save Product</button>
+                  <button type="button" onClick={() => {
+                    setIsAdding(false);
+                    setIsEditing(false);
+                    setCurrentId(null);
+                  }} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
+                  <button type="submit" className="flex-[2] px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20">
+                    {isEditing ? 'Update Product' : 'Save Product'}
+                  </button>
                 </div>
               </form>
             </motion.div>

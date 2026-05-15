@@ -38,9 +38,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function testConnection() {
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
+        console.log("Firestore connection successful.");
       } catch (error) {
         if(error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration.");
+          console.warn("Firestore is operating in offline mode. This might be due to network restrictions or configuration.");
+        } else {
+          console.error("Firestore connection error:", error);
         }
       }
     }
@@ -67,7 +70,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
           }
         } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+          // If offline, we might still want to set the user state based on auth only if we can't reach Firestore
+          const isOffline = error instanceof Error && error.message.includes('offline');
+          
+          if (isOffline) {
+             console.warn("Using offline auth state for:", firebaseUser.uid);
+             setUser({
+               uid: firebaseUser.uid,
+               email: firebaseUser.email,
+               displayName: firebaseUser.displayName,
+               role: 'buyer', 
+             });
+          } else {
+             handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+          }
         }
       } else {
         setUser(null);
