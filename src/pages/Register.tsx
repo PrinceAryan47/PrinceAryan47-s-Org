@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { getAuthErrorMessage } from '../lib/authUtils';
 
 export default function Register() {
@@ -29,16 +29,32 @@ export default function Register() {
     setLoading(true);
     setError(null);
 
+    const normalizedEmail = formData.email.trim().toLowerCase();
+
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email.trim(), formData.password);
+      // Check if email already exists in our unique tracking collection
+      const emailRef = doc(db, 'unique_emails', normalizedEmail);
+      const emailDoc = await getDoc(emailRef);
+
+      if (emailDoc.exists()) {
+        setError('This email is already registered. Please use another or sign in.');
+        setLoading(false);
+        return;
+      }
+
+      const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, formData.password);
       const user = userCredential.user;
 
       await updateProfile(user, {
         displayName: formData.fullName
       });
 
+      // Use a batch to ensure both documents are created
+      const batch = writeBatch(db);
+
       // Save user profile to Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      const userRef = doc(db, 'users', user.uid);
+      batch.set(userRef, {
         role,
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
@@ -47,8 +63,17 @@ export default function Register() {
         shopNo: role === 'wholesaler' ? formData.shopNo : null,
         block: role === 'wholesaler' ? formData.block : null,
         joinedAt: serverTimestamp(),
-        email: formData.email
+        email: normalizedEmail,
+        uid: user.uid
       });
+
+      // Save unique email record
+      batch.set(emailRef, {
+        uid: user.uid,
+        createdAt: serverTimestamp()
+      });
+
+      await batch.commit();
 
       navigate(role === 'wholesaler' ? '/dashboard' : '/');
     } catch (err: any) {

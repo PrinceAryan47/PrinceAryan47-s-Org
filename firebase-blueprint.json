@@ -138,6 +138,16 @@
         "read": { "type": "boolean" }
       },
       "required": ["wholesalerId", "buyerId", "message"]
+    },
+    "unique_email": {
+      "title": "Unique Email Record",
+      "description": "Used to prevent duplicate account registration",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["uid", "createdAt"]
     }
   },
   "firestore": {
@@ -147,6 +157,7 @@
     "sales": { "schema": "sale", "description": "Digital ledger history for all sellers" },
     "expenses": { "schema": "expense", "description": "Business expenditure tracking" },
     "reviews": { "schema": "review", "description": "Collection of product reviews" },
-    "notifications": { "schema": "notification", "description": "Buyer inquiries sent to wholesalers" }
+    "notifications": { "schema": "notification", "description": "Buyer inquiries sent to wholesalers" },
+    "unique_emails": { "schema": "unique_email", "description": "Tracking collection to enforce unique emails across accounts" }
   }
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X, ShoppingCart, User, Search, Store, LayoutDashboard, LogOut } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -12,9 +12,16 @@ interface NavbarProps {
 
 export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { cartCount } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    setIsMenuOpen(false);
+    navigate('/login');
+  };
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -127,7 +134,7 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
                   {link.name}
                 </Link>
               ))}
-              {!user && (
+              {!user ? (
                 <Link
                   to="/login"
                   onClick={() => setIsMenuOpen(false)}
@@ -135,6 +142,14 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
                 >
                   Login / Register
                 </Link>
+              ) : (
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
+                >
+                  <LogOut size={18} />
+                  Logout
+                </button>
               )}
             </div>
           </motion.div>

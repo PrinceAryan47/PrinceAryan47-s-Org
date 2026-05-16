@@ -11,13 +11,21 @@ import {
   History,
   BookOpen
 } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   role: 'buyer' | 'wholesaler';
 }
 
 export default function Sidebar({ role }: SidebarProps) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
   const buyerLinks = [
     { name: 'My Profile', icon: Users, path: '/profile' },
     { name: 'My Orders', icon: ShoppingCart, path: '/orders' },
@@ -66,7 +74,10 @@ export default function Sidebar({ role }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-gray-100">
-        <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all w-full">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all w-full"
+        >
           <LogOut size={18} />
           Logout
         </button>

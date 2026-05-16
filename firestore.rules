@@ -6,6 +6,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Allow connection testing (Mandatory Constraint)
+    match /test/connection {
+      allow get: if true;
+    }
+
     // Phase 3: Global Helpers
     function isSignedIn() {
       return request.auth != null;
@@ -47,6 +52,12 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if isOwner(userId) && isValidUser(incoming()) 
         && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phoneNumber', 'whatsappNumber', 'shopNo', 'block', 'location', 'businessDescription', 'openingHours', 'returnPolicy', 'businessName']);
+    }
+
+    // Unique Email Tracking
+    match /unique_emails/{email} {
+      allow get: if true;
+      allow create: if isSignedIn() && incoming().uid == request.auth.uid && !exists(/databases/$(database)/documents/unique_emails/$(email));
     }
 
     // 2. Products Collection
