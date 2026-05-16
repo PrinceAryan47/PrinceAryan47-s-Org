@@ -17,7 +17,8 @@
         "location": { "type": "string" },
         "businessDescription": { "type": "string" },
         "openingHours": { "type": "string" },
-        "returnPolicy": { "type": "string" }
+        "returnPolicy": { "type": "string" },
+        "photoURL": { "type": "string" }
       },
       "required": ["uid", "role"]
     },

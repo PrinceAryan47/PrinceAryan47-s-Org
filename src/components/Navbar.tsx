@@ -88,8 +88,12 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
                 to={user.role === 'wholesaler' ? '/dashboard' : '/profile'}
                 className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                  <User size={14} />
+                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 overflow-hidden">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt={user.displayName || ''} className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={14} />
+                  )}
                 </div>
                 <span className="text-xs font-semibold text-gray-700 hidden sm:inline">
                   {user.role === 'wholesaler' ? 'Dashboard' : 'Profile'}
@@ -134,6 +138,22 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
                   {link.name}
                 </Link>
               ))}
+              {user && (
+                <Link
+                  to={user.role === 'wholesaler' ? '/dashboard' : '/profile'}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="px-3 py-3 text-base font-bold text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 overflow-hidden border border-blue-200">
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName || ''} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={18} />
+                    )}
+                  </div>
+                  {user.role === 'wholesaler' ? 'Merchant Dashboard' : 'My Account'}
+                </Link>
+              )}
               {!user ? (
                 <Link
                   to="/login"

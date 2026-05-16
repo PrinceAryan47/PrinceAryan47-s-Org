@@ -21,6 +21,7 @@ interface UserProfile {
   whatsappNumber?: string;
   shopNo?: string;
   block?: string;
+  photoURL?: string;
 }
 
 interface AuthContextType {

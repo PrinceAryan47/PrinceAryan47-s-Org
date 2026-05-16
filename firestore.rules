@@ -51,7 +51,7 @@ service cloud.firestore {
       allow list: if false; // Prevention of user scraping
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if isOwner(userId) && isValidUser(incoming()) 
-        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phoneNumber', 'whatsappNumber', 'shopNo', 'block', 'location', 'businessDescription', 'openingHours', 'returnPolicy', 'businessName']);
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phoneNumber', 'whatsappNumber', 'shopNo', 'block', 'location', 'businessDescription', 'openingHours', 'returnPolicy', 'businessName', 'photoURL']);
     }
 
     // Unique Email Tracking

@@ -7,6 +7,6 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true, // Probe for long polling if WebSockets fail
+  experimentalForceLongPolling: true, // Force long polling for reliability in sandbox
 }, firebaseConfig.firestoreDatabaseId);
 export const storage = getStorage(app);

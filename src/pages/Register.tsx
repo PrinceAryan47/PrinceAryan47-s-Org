@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, UserPlus, Store, User, Building2, Phone, MessageCircle } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -8,7 +8,9 @@ import { doc, setDoc, getDoc, serverTimestamp, writeBatch } from 'firebase/fires
 import { getAuthErrorMessage } from '../lib/authUtils';
 
 export default function Register() {
-  const [role, setRole] = useState<'buyer' | 'wholesaler'>('buyer');
+  const location = useLocation();
+  const isSellerReg = location.pathname === '/register-seller';
+  const [role, setRole] = useState<'buyer' | 'wholesaler'>(isSellerReg ? 'wholesaler' : 'buyer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();

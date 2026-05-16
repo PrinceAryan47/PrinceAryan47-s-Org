@@ -71,8 +71,10 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-800 text-center text-xs">
-          <p>&copy; {new Date().getFullYear()} HAM Grounds. All rights reserved. Designed for Ugandan Wholesalers.</p>
+        <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
+          <p>&copy; {new Date().getFullYear()} HAM Grounds. All rights reserved.</p>
+          <p className="font-bold text-blue-400 tracking-wider uppercase">Made by KASUMBA TREASURE</p>
+          <p className="hidden md:block">Designed for Ugandan Wholesalers.</p>
         </div>
       </div>
     </footer>

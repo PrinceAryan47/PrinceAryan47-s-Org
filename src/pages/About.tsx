@@ -83,6 +83,22 @@ export default function About() {
         </div>
       </section>
 
+      {/* Meet the Creator */}
+      <section className="max-w-7xl mx-auto px-4 py-20 text-center space-y-10">
+        <div className="inline-block p-1 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-[2.5rem]">
+           <div className="bg-white p-12 md:p-20 rounded-[2.2rem] space-y-8">
+              <div className="space-y-4">
+                 <h2 className="text-sm font-black text-blue-600 uppercase tracking-[0.3em]">The Architect</h2>
+                 <h3 className="text-4xl md:text-5xl font-black text-gray-900 italic">Designed by KASUMBA TREASURE</h3>
+              </div>
+              <p className="max-w-2xl mx-auto text-gray-500 leading-relaxed font-medium">
+                HAM Grounds is the vision of Kasumba Treasure, dedicated to digitizing African commerce 
+                and empowering local traders through elegant, powerful software solutions.
+              </p>
+           </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="max-w-5xl mx-auto px-4 py-20">
         <div className="bg-gray-900 rounded-[3rem] p-12 text-center text-white space-y-8 relative overflow-hidden">
