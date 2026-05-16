@@ -88,6 +88,14 @@ export default function Profile() {
     setSuccess(false);
     setError(null);
 
+    // Phone validation (07... + 8 digits)
+    const phoneRegex = /^07[0-9]{8}$/;
+    if (formData.phoneNumber && !phoneRegex.test(formData.phoneNumber)) {
+      setError('Please enter a valid Ugandan phone number (starting with 07 followed by 8 digits, e.g., 0712345678).');
+      setLoading(false);
+      return;
+    }
+
     try {
       await updateDoc(doc(db, 'users', user.uid), {
         ...formData,
@@ -164,10 +172,12 @@ export default function Profile() {
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
                       <input 
                         type="tel" 
+                        pattern="07[0-9]{8}"
+                        maxLength={10}
                         value={formData.phoneNumber}
-                        onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+                        onChange={(e) => setFormData({...formData, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10)})}
                         className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                        placeholder="07..."
+                        placeholder="0712345678"
                       />
                    </div>
                 </div>

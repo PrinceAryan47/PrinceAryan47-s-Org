@@ -47,6 +47,19 @@ export default function Contact() {
                   <p className="text-sm text-gray-500">Sales: sales@hamgrounds.ug</p>
                </div>
             </div>
+
+            {/* NEW: Admin Specific Contact */}
+            <div className="flex items-start gap-4 p-8 bg-blue-900 text-white rounded-[2.5rem] shadow-xl border-4 border-blue-800">
+               <div className="p-4 bg-blue-600 rounded-2xl">
+                  <ShieldCheck size={32} />
+               </div>
+               <div className="space-y-1">
+                  <h4 className="text-xl font-black uppercase tracking-tighter italic">ADMIN SUPPORT</h4>
+                  <p className="text-xs text-blue-200 font-bold tracking-widest uppercase">Incase of any technical issue or dispute:</p>
+                  <p className="text-lg font-black text-blue-400">treasurekasumba47@gmail.com</p>
+                  <p className="text-sm font-bold text-blue-100 underline decoration-blue-600 underline-offset-4">+256 750 619 853</p>
+               </div>
+            </div>
           </div>
         </div>
 

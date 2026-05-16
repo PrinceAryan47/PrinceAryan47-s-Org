@@ -71,6 +71,27 @@ export default function Inquiries() {
           </div>
         )}
       </div>
+
+      {/* Admin Support Callout */}
+      <section className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4 text-center md:text-left">
+           <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+              <HelpCircle size={24} />
+           </div>
+           <div>
+              <h4 className="font-black text-gray-900">Technical Issue?</h4>
+              <p className="text-xs text-gray-500 font-medium tracking-tight">Report bugs or account issues to our Admin team immediately.</p>
+           </div>
+        </div>
+        <div className="flex items-center gap-2">
+           <a href="mailto:treasurekasumba47@gmail.com" className="bg-white text-gray-900 border border-gray-200 px-6 py-3 rounded-2xl text-xs font-black shadow-sm hover:bg-gray-50 transition-all">
+             Email Admin
+           </a>
+           <a href="https://wa.me/256750619853" target="_blank" rel="noreferrer" className="bg-green-600 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-lg shadow-green-500/20 hover:bg-green-700 transition-all">
+             WhatsApp Admin
+           </a>
+        </div>
+      </section>
     </div>
   );
 }

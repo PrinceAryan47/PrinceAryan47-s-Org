@@ -85,6 +85,17 @@ export default function InventoryList() {
     e.preventDefault();
     if (!user) return;
 
+    if (isUploading) {
+      alert('Please wait for the image upload to complete.');
+      return;
+    }
+
+    if (formData.images.length === 0) {
+      if (!window.confirm('You haven\'t uploaded any images for this product. Do you want to continue anyway?')) {
+        return;
+      }
+    }
+
     try {
       const productData = {
         ...formData,

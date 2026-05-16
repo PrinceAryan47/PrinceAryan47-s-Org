@@ -31,6 +31,67 @@ export default function Register() {
     setLoading(true);
     setError(null);
 
+    // Explicit validation for Ugandan Phone Numbers (07... + 8 digits)
+    const phoneRegex = /^07[0-9]{8}$/;
+    
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      setError('Please enter a valid Ugandan phone number (starting with 07 followed by 8 digits, e.g., 0712345678).');
+      setLoading(false);
+      return;
+    }
+
+    if (!phoneRegex.test(formData.whatsappNumber)) {
+      setError('Please enter a valid WhatsApp number (starting with 07 followed by 8 digits).');
+      setLoading(false);
+      return;
+    }
+
+    // Check for missing wholesaler fields
+    if (role === 'wholesaler') {
+      if (!formData.businessName) {
+        setError('Missing Business Name. Please fill in your business name.');
+        setLoading(false);
+        return;
+      }
+      if (!formData.shopNo) {
+        setError('Missing Shop Number. Please fill in your shop number.');
+        setLoading(false);
+        return;
+      }
+      if (!formData.block) {
+        setError('Missing Block. Please fill in which block your shop is located in.');
+        setLoading(false);
+        return;
+      }
+    }
+
+    // General field check
+    if (!formData.fullName) {
+      setError('Missing Full Name. Please enter your name.');
+      setLoading(false);
+      return;
+    }
+    if (!formData.email) {
+      setError('Missing Email. Please enter your email address.');
+      setLoading(false);
+      return;
+    }
+    if (!formData.password) {
+      setError('Missing Password. Please enter a password.');
+      setLoading(false);
+      return;
+    }
+    if (!formData.phoneNumber) {
+      setError('Missing Phone Number. Please enter your phone number.');
+      setLoading(false);
+      return;
+    }
+    if (!formData.whatsappNumber) {
+      setError('Missing WhatsApp Number. Please enter your WhatsApp number.');
+      setLoading(false);
+      return;
+    }
+
     const normalizedEmail = formData.email.trim().toLowerCase();
 
     try {
@@ -176,11 +237,13 @@ export default function Register() {
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input 
                         required
-                        type="text" 
+                        type="tel" 
+                        pattern="07[0-9]{8}"
+                        title="Ugandan phone number starting with 07 (10 digits total)"
                         className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
-                        placeholder="+256..." 
+                        placeholder="0712345678" 
                         value={formData.phoneNumber}
-                        onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+                        onChange={(e) => setFormData({...formData, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10)})}
                       />
                    </div>
                 </div>
@@ -192,11 +255,13 @@ export default function Register() {
                     <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input 
                       required
-                      type="text" 
+                      type="tel" 
+                      pattern="07[0-9]{8}"
+                      title="WhatsApp number starting with 07 (10 digits total)"
                       className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
-                      placeholder="+256..." 
+                      placeholder="0712345678" 
                       value={formData.whatsappNumber}
-                      onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value})}
+                      onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value.replace(/\D/g, '').slice(0, 10)})}
                     />
                  </div>
               </div>

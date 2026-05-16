@@ -56,11 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
+            const data = userDoc.data();
             setUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              ...(userDoc.data() as any),
+              displayName: firebaseUser.displayName || data?.fullName || data?.displayName || null,
+              ...(data as any),
             });
           } else {
             // New user or profile not found
