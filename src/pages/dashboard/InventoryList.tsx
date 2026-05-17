@@ -50,37 +50,43 @@ export default function InventoryList() {
     if (!files || files.length === 0 || !user) return;
 
     setIsUploading(true);
-    const newImages = [...formData.images];
+    const currentImages = [...formData.images];
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
+      const uploadPromises = Array.from(files).map(async (file: File) => {
         // Validate file type
         if (!file.type.startsWith('image/')) {
-          alert(`File "${file.name}" is not an image.`);
-          continue;
+          console.warn(`File "${file.name}" is not an image.`);
+          return null;
         }
 
         // Validate size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-          alert(`Image "${file.name}" is too large. Max 5MB.`);
-          continue;
+          console.warn(`Image "${file.name}" is too large. Max 5MB.`);
+          return null;
         }
         
         // Storage path: products/{userId}/{timestamp}_{filename}
         const storageRef = ref(storage, `products/${user.uid}/${Date.now()}_${file.name}`);
-        
         const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        
-        newImages.push(downloadURL);
+        return getDownloadURL(snapshot.ref);
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const successfulUploads = results.filter((url): url is string => url !== null);
+      
+      setFormData({ 
+        ...formData, 
+        images: [...currentImages, ...successfulUploads] 
+      });
+
+      if (successfulUploads.length < files.length) {
+        alert('Some files could not be uploaded (wrong format or too large).');
       }
 
-      setFormData({ ...formData, images: newImages });
     } catch (error: any) {
       console.error('Error uploading images:', error);
-      alert('Failed to upload one or more images: ' + (error.message || 'Check your connection.'));
+      alert('Failed to upload images: ' + (error.message || 'Check your connection.'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -311,77 +317,67 @@ export default function InventoryList() {
               <h2 className="text-2xl font-bold">{isEditing ? 'Edit Product' : 'Add to Inventory'}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Product Images</label>
-                  <div className="space-y-4">
-                    {formData.images.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {formData.images.map((url, idx) => (
-                          <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 group">
-                            <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
-                            <button 
-                              type="button"
-                              onClick={() => removeImage(idx)}
-                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X size={10} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div 
-                      onClick={() => !isUploading && fileInputRef.current?.click()}
-                      className={`w-full border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-400 p-6 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
-                    >
-                      <div className="p-3 bg-gray-50 rounded-full">
-                        {isUploading ? (
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          >
-                            <Upload size={24} />
-                          </motion.div>
-                        ) : (
-                          <Upload size={24} />
-                        )}
-                      </div>
-                      <p className="text-xs font-bold">
-                        {isUploading ? 'Uploading...' : 'Click to upload images or drag & drop'}
-                      </p>
-                      <p className="text-[10px]">Select multiple images if needed.</p>
-                    </div>
-                    
-                    <input 
-                      type="file" 
-                      ref={fileInputRef}
-                      className="hidden" 
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileChange}
-                    />
+                   <label className="block text-sm font-bold text-gray-700 mb-2">Product Images</label>
+                   <div className="space-y-4">
+                     {formData.images.length > 0 && (
+                       <div className="grid grid-cols-3 gap-2">
+                         {formData.images.map((url, idx) => (
+                           <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 group">
+                             <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                             <button 
+                               type="button"
+                               onClick={() => removeImage(idx)}
+                               className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                             >
+                               <X size={10} />
+                             </button>
+                           </div>
+                         ))}
+                       </div>
+                     )}
+                     
+                     <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => !isUploading && fileInputRef.current?.click()}
+                          className={`border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-400 p-4 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                        >
+                          <Upload size={20} />
+                          <span className="text-[10px] font-black uppercase tracking-widest">{isUploading ? 'Uploading...' : 'Upload File'}</span>
+                        </button>
 
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                        <ImageIcon size={16} />
-                      </div>
-                      <input 
-                        type="text" 
-                        placeholder="Add image by URL..." 
-                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const val = (e.target as HTMLInputElement).value;
-                            if (val) {
-                              setFormData({...formData, images: [...formData.images, val]});
-                              (e.target as HTMLInputElement).value = '';
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
+                        <div className="flex flex-col gap-2">
+                           <div className="relative">
+                              <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                              <input 
+                                type="text" 
+                                placeholder="Paste Image URL..." 
+                                className="w-full pl-9 pr-4 py-3 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs bg-gray-50"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const val = (e.target as HTMLInputElement).value;
+                                    if (val) {
+                                      setFormData({...formData, images: [...formData.images, val]});
+                                      (e.target as HTMLInputElement).value = '';
+                                    }
+                                  }
+                                }}
+                              />
+                           </div>
+                           <p className="text-[9px] text-gray-400 italic px-2">Press Enter to add the link</p>
+                        </div>
+                     </div>
+                     
+                     <input 
+                       type="file" 
+                       ref={fileInputRef}
+                       className="hidden" 
+                       accept="image/*"
+                       multiple
+                       onChange={handleFileChange}
+                     />
+                   </div>
                 </div>
 
                 <div>

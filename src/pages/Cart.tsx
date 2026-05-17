@@ -1,11 +1,113 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
-import { Trash2, Plus, Minus, MessageCircle, Phone, ArrowLeft, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Minus, MessageCircle, Phone, ArrowLeft, ShoppingBag, Loader2, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 
 export default function Cart() {
-  const { items, updateQuantity, removeFromCart, totalAmount, cartCount } = useCart();
+  const { items, updateQuantity, removeFromCart, totalAmount, cartCount, clearCart } = useCart();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [orderComplete, setOrderComplete] = useState(false);
+
+  const handleCheckout = async (type: 'whatsapp' | 'call') => {
+    if (!user) {
+      alert('Please log in to place an order.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Group items by sellerId
+      const groupedBySeller: { [key: string]: any[] } = {};
+      items.forEach(item => {
+        if (!groupedBySeller[item.sellerId]) {
+          groupedBySeller[item.sellerId] = [];
+        }
+        groupedBySeller[item.sellerId].push(item);
+      });
+
+      // Create an order for each seller
+      const orderIds: string[] = [];
+      for (const sellerId in groupedBySeller) {
+        const sellerItems = groupedBySeller[sellerId];
+        const sellerTotal = sellerItems.reduce((acc, curr) => acc + (curr.wholesalePrice * curr.quantity), 0);
+        
+        const orderData = {
+          buyerId: user.uid,
+          buyerName: user.displayName || user.email,
+          buyerPhone: (user as any).phoneNumber || '',
+          sellerId: sellerId,
+          sellerName: sellerItems[0].sellerName || 'Verified Wholesaler',
+          items: sellerItems.map(i => ({
+            productId: i.id,
+            name: i.name,
+            quantity: i.quantity,
+            price: i.wholesalePrice,
+            image: i.images?.[0] || null
+          })),
+          total: sellerTotal,
+          status: 'New',
+          createdAt: serverTimestamp(),
+          contactMethod: type
+        };
+
+        const docRef = await addDoc(collection(db, 'orders'), orderData);
+        orderIds.push(docRef.id);
+      }
+
+      setOrderComplete(true);
+      clearCart();
+
+      // Open WhatsApp if chosen
+      if (type === 'whatsapp') {
+        const message = encodeURIComponent(`Hello! I would like to confirm my order from Ham Grounds. Order Hash: ${orderIds[0].slice(-6).toUpperCase()}`);
+        const phone = items[0].sellerWhatsapp?.replace(/[^0-9]/g, '') || '256750619853';
+        window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+      }
+
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to process order. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (orderComplete) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-6">
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto"
+        >
+          <CheckCircle2 size={48} />
+        </motion.div>
+        <h1 className="text-3xl font-black text-gray-900 tracking-tighter">ORDER CONFIRMED!</h1>
+        <p className="text-gray-500 max-w-sm mx-auto font-medium">
+          Your wholesale order has been recorded. The wholesaler has been notified and expects your follow-up contact.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+          <Link 
+            to="/orders" 
+            className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 shadow-xl shadow-blue-500/20"
+          >
+            Track Orders
+          </Link>
+          <Link 
+            to="/products" 
+            className="bg-gray-100 text-gray-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200"
+          >
+            Continue Sourcing
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -113,12 +215,20 @@ export default function Cart() {
                  <p className="text-xs text-gray-500 text-center">
                     Payment is handled directly via WhatsApp or Call with the wholesaler.
                  </p>
-                 <button className="w-full flex items-center justify-center gap-3 bg-green-600 text-white py-4 rounded-2xl font-bold hover:bg-green-700 transition-all text-lg shadow-lg shadow-green-600/20">
-                    <MessageCircle size={24} />
+                 <button 
+                    onClick={() => handleCheckout('whatsapp')}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-3 bg-green-600 text-white py-4 rounded-2xl font-bold hover:bg-green-700 transition-all text-lg shadow-lg shadow-green-600/20 disabled:opacity-50"
+                 >
+                    {loading ? <Loader2 className="animate-spin" size={24} /> : <MessageCircle size={24} />}
                     Confirm on WhatsApp
                  </button>
-                 <button className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 py-4 rounded-2xl font-bold hover:bg-gray-100 transition-all text-lg border border-gray-100">
-                    <Phone size={24} />
+                 <button 
+                    onClick={() => handleCheckout('call')}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 py-4 rounded-2xl font-bold hover:bg-gray-100 transition-all text-lg border border-gray-100 disabled:opacity-50"
+                 >
+                    {loading ? <Loader2 className="animate-spin" size={24} /> : <Phone size={24} />}
                     Connect via Direct Call
                  </button>
               </div>
@@ -138,3 +248,4 @@ export default function Cart() {
     </div>
   );
 }
+

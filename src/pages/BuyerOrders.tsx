@@ -1,55 +1,37 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ShoppingCart, Package, ChevronRight, Clock, CheckCircle2, Truck } from 'lucide-react';
+import { ShoppingCart, Package, ChevronRight, Clock, CheckCircle2, Truck, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const MOCK_ORDERS = [
-  {
-    id: 'ORD-7721',
-    date: '2024-05-10',
-    total: 245000,
-    status: 'Delivered',
-    items: 4,
-    shop: 'Kikuubo General Wholesalers'
-  },
-  {
-    id: 'ORD-8942',
-    date: '2024-05-14',
-    total: 120000,
-    status: 'In Transit',
-    items: 2,
-    shop: 'Ham Enterprise'
-  },
-  {
-    id: 'ORD-9011',
-    date: '2024-05-15',
-    total: 85000,
-    status: 'Pending',
-    items: 1,
-    shop: 'Jesa Distributors'
-  }
-];
+import { useAuth } from '../context/AuthContext';
+import { useBuyerOrders } from '../hooks/useDashboardData';
 
 const getStatusStyles = (status: string) => {
   switch (status) {
-    case 'Delivered': return 'bg-green-50 text-green-600 border-green-100';
-    case 'In Transit': return 'bg-blue-50 text-blue-600 border-blue-100';
-    case 'Pending': return 'bg-amber-50 text-amber-600 border-amber-100';
+    case 'Completed': return 'bg-green-50 text-green-600 border-green-100';
+    case 'Shipped': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+    case 'Ready': return 'bg-purple-50 text-purple-600 border-purple-100';
+    case 'Processing': return 'bg-amber-50 text-amber-600 border-amber-100';
+    case 'New': return 'bg-blue-50 text-blue-600 border-blue-100';
+    case 'Cancelled': return 'bg-red-50 text-red-600 border-red-100';
     default: return 'bg-gray-50 text-gray-600 border-gray-100';
   }
 };
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'Delivered': return <CheckCircle2 size={14} />;
-    case 'In Transit': return <Truck size={14} />;
-    case 'Pending': return <Clock size={14} />;
+    case 'Completed': return <CheckCircle2 size={14} />;
+    case 'Shipped': 
+    case 'Ready': return <Truck size={14} />;
+    case 'Processing': 
+    case 'New': return <Clock size={14} />;
+    case 'Cancelled': return <AlertCircle size={14} />;
     default: return null;
   }
 };
 
 export default function BuyerOrders() {
-  const orders = MOCK_ORDERS;
+  const { user } = useAuth();
+  const { orders, loading } = useBuyerOrders(user?.uid);
 
   return (
     <div className="space-y-10 pb-20">
@@ -59,7 +41,12 @@ export default function BuyerOrders() {
       </div>
 
       <div className="space-y-4">
-        {orders.map((order) => (
+        {loading ? (
+           <div className="py-20 text-center">
+              <Loader2 className="animate-spin mx-auto text-blue-600 mb-4" size={40} />
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Loading your orders...</p>
+           </div>
+        ) : orders.map((order) => (
           <motion.div
             key={order.id}
             initial={{ opacity: 0, y: 10 }}
@@ -72,20 +59,20 @@ export default function BuyerOrders() {
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-bold text-gray-900">Order #{order.id}</h3>
+                  <h3 className="font-bold text-gray-900">Order #{order.id.slice(-6).toUpperCase()}</h3>
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${getStatusStyles(order.status)}`}>
                     {getStatusIcon(order.status)}
                     {order.status}
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-gray-500">{order.shop} • {order.items} Items</p>
+                <p className="text-xs font-semibold text-gray-500">{order.sellerName} • {order.items?.length || 0} Items</p>
               </div>
             </div>
 
             <div className="flex items-center justify-between md:justify-end gap-10">
               <div className="text-right">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Order Amount</p>
-                <p className="font-black text-gray-900">UGX {order.total.toLocaleString()}</p>
+                <p className="font-black text-gray-900">UGX {order.total?.toLocaleString()}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
                 <ChevronRight size={20} />
@@ -95,7 +82,7 @@ export default function BuyerOrders() {
         ))}
       </div>
 
-      {orders.length === 0 && (
+      {!loading && orders.length === 0 && (
         <div className="bg-white rounded-[2.5rem] border border-gray-100 p-20 text-center space-y-6">
           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-300">
             <Package size={40} />
@@ -115,3 +102,4 @@ export default function BuyerOrders() {
     </div>
   );
 }
+

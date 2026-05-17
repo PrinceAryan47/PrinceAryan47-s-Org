@@ -167,3 +167,67 @@ export function useWholesalerReviews(wholesalerId: string | undefined) {
 
   return { reviews, loading };
 }
+
+export function useWholesalerOrders(wholesalerId: string | undefined) {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!wholesalerId) return;
+
+    const q = query(
+      collection(db, 'orders'),
+      where('sellerId', '==', wholesalerId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const ordersList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setOrders(ordersList);
+      setLoading(false);
+    }, (error) => {
+      console.error("Wholesaler orders listener error:", error);
+      handleFirestoreError(error, OperationType.LIST, 'orders');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [wholesalerId]);
+
+  return { orders, loading };
+}
+
+export function useBuyerOrders(buyerId: string | undefined) {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!buyerId) return;
+
+    const q = query(
+      collection(db, 'orders'),
+      where('buyerId', '==', buyerId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const ordersList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setOrders(ordersList);
+      setLoading(false);
+    }, (error) => {
+      console.error("Buyer orders listener error:", error);
+      handleFirestoreError(error, OperationType.LIST, 'orders');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [buyerId]);
+
+  return { orders, loading };
+}
