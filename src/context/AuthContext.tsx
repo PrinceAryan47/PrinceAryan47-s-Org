@@ -54,7 +54,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          
+          // Retry logic: if user exists in Auth but not yet in Firestore, it might be a registration in progress
+          if (!userDoc.exists()) {
+             // Wait 2 seconds and try once more - important for registration race conditions
+             await new Promise(resolve => setTimeout(resolve, 2000));
+             userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          }
+
           if (userDoc.exists()) {
             const data = userDoc.data();
             setUser({

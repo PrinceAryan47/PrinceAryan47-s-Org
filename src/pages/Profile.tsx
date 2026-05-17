@@ -11,12 +11,20 @@ import {
   AlertCircle,
   LayoutDashboard,
   Store,
-  Loader2
+  Loader2,
+  Lock,
+  Trash2,
+  XCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { updateProfile } from 'firebase/auth';
+import { 
+  updateProfile, 
+  sendPasswordResetEmail, 
+  deleteUser, 
+  signOut 
+} from 'firebase/auth';
 import { db, storage, auth } from '../firebase';
 import { Link } from 'react-router-dom';
 
@@ -27,6 +35,8 @@ export default function Profile() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const [formData, setFormData] = useState({
     displayName: user?.displayName || '',
@@ -114,6 +124,48 @@ export default function Profile() {
     } catch (err: any) {
       console.error(err);
       setError('Failed to update profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      setResetSent(true);
+      setTimeout(() => setResetSent(false), 5000);
+    } catch (err: any) {
+      setError('Failed to send reset email. ' + (err.message || ''));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!auth.currentUser) return;
+    setLoading(true);
+    setError(null);
+    try {
+      // 1. Delete Firestore Data
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid));
+      
+      // 2. Delete Auth Account
+      await deleteUser(auth.currentUser);
+      
+      // 3. Sign Out (usually automatic after delete, but to be sure)
+      await signOut(auth);
+      
+      window.location.href = '/';
+    } catch (err: any) {
+      if (err.code === 'auth/requires-recent-login') {
+        setError('For security reasons, you must have logged in recently to delete your account. Please log out and back in, then try again.');
+      } else {
+        setError('Failed to delete account. ' + (err.message || ''));
+      }
+      setShowDeleteConfirm(false);
     } finally {
       setLoading(false);
     }
@@ -283,15 +335,65 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100">
-             <h5 className="font-bold text-gray-900 mb-4">Account Security</h5>
+          <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 space-y-6">
+             <div className="flex items-center gap-2 text-gray-900">
+                <Lock size={18} className="text-blue-600" />
+                <h5 className="font-black uppercase tracking-widest text-[10px]">Account Security</h5>
+             </div>
+             
              <div className="space-y-4">
-                <button className="w-full bg-white border border-gray-200 text-gray-700 py-3 rounded-xl text-xs font-black hover:bg-gray-100 transition-colors">
-                   Change Password
-                </button>
-                <button className="w-full text-red-600 text-xs font-black hover:underline py-2">
-                   Delete Account
-                </button>
+                <div className="space-y-2">
+                  <button 
+                    onClick={handlePasswordReset}
+                    disabled={loading}
+                    className="w-full bg-white border border-gray-200 text-gray-700 py-4 rounded-2xl text-xs font-black hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    {resetSent ? (
+                      <><CheckCircle size={16} className="text-green-500" /> Reset Link Sent!</>
+                    ) : (
+                      <>Change Password <Lock size={16} /></>
+                    )}
+                  </button>
+                  {resetSent && (
+                    <p className="text-[10px] text-green-600 font-bold text-center px-4">
+                      A password reset link has been sent to your email.
+                    </p>
+                  )}
+                </div>
+
+                {!showDeleteConfirm ? (
+                  <button 
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full text-red-400 text-[10px] font-black hover:text-red-600 hover:underline py-2 transition-colors uppercase tracking-widest"
+                  >
+                    Delete Account
+                  </button>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="p-6 bg-red-50 border border-red-100 rounded-[2rem] space-y-4"
+                  >
+                    <p className="text-xs font-bold text-red-600 text-center">
+                      Are you absolutely sure? This action cannot be undone.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button 
+                        onClick={handleDeleteAccount}
+                        disabled={loading}
+                        className="bg-red-600 text-white py-3 rounded-xl text-xs font-black shadow-lg shadow-red-600/20 hover:bg-red-700 flex items-center justify-center gap-1"
+                      >
+                        {loading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Confirm
+                      </button>
+                      <button 
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="bg-white border border-gray-200 text-gray-600 py-3 rounded-xl text-xs font-black hover:bg-gray-50 transition-all flex items-center justify-center gap-1"
+                      >
+                        <XCircle size={14} /> Cancel
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
              </div>
           </div>
         </div>

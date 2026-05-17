@@ -56,6 +56,18 @@ export default function InventoryList() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          alert(`File "${file.name}" is not an image.`);
+          continue;
+        }
+
+        // Validate size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert(`Image "${file.name}" is too large. Max 5MB.`);
+          continue;
+        }
+        
         // Storage path: products/{userId}/{timestamp}_{filename}
         const storageRef = ref(storage, `products/${user.uid}/${Date.now()}_${file.name}`);
         
@@ -66,9 +78,9 @@ export default function InventoryList() {
       }
 
       setFormData({ ...formData, images: newImages });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading images:', error);
-      alert('Failed to upload one or more images. Please try again.');
+      alert('Failed to upload one or more images: ' + (error.message || 'Check your connection.'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

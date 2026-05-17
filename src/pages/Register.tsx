@@ -49,45 +49,45 @@ export default function Register() {
     // Check for missing wholesaler fields
     if (role === 'wholesaler') {
       if (!formData.businessName) {
-        setError('Missing Business Name. Please fill in your business name.');
+        setError('Missing Information: Business Name is required for wholesalers.');
         setLoading(false);
         return;
       }
       if (!formData.shopNo) {
-        setError('Missing Shop Number. Please fill in your shop number.');
+        setError('Missing Information: Shop Number is required.');
         setLoading(false);
         return;
       }
       if (!formData.block) {
-        setError('Missing Block. Please fill in which block your shop is located in.');
+        setError('Missing Information: Block location is required.');
         setLoading(false);
         return;
       }
     }
 
     // General field check
-    if (!formData.fullName) {
-      setError('Missing Full Name. Please enter your name.');
+    if (!formData.fullName || formData.fullName.trim().length < 3) {
+      setError('Invalid Name: Please enter your full name (at least 3 characters).');
       setLoading(false);
       return;
     }
-    if (!formData.email) {
-      setError('Missing Email. Please enter your email address.');
+    if (!formData.email || !formData.email.includes('@')) {
+      setError('Invalid Email: Please enter a valid email address.');
       setLoading(false);
       return;
     }
-    if (!formData.password) {
-      setError('Missing Password. Please enter a password.');
+    if (!formData.password || formData.password.length < 6) {
+      setError('Invalid Password: Password must be at least 6 characters.');
       setLoading(false);
       return;
     }
     if (!formData.phoneNumber) {
-      setError('Missing Phone Number. Please enter your phone number.');
+      setError('Missing Info: Phone Number is required.');
       setLoading(false);
       return;
     }
     if (!formData.whatsappNumber) {
-      setError('Missing WhatsApp Number. Please enter your WhatsApp number.');
+      setError('Missing Info: WhatsApp Number is required.');
       setLoading(false);
       return;
     }
@@ -119,7 +119,7 @@ export default function Register() {
       const userRef = doc(db, 'users', user.uid);
       batch.set(userRef, {
         role,
-        fullName: formData.fullName,
+        displayName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         whatsappNumber: formData.whatsappNumber,
         businessName: role === 'wholesaler' ? formData.businessName : null,
