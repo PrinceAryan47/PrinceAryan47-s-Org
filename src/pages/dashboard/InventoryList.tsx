@@ -50,43 +50,52 @@ export default function InventoryList() {
     if (!files || files.length === 0 || !user) return;
 
     setIsUploading(true);
-    const currentImages = [...formData.images];
-
+    
     try {
-      const uploadPromises = Array.from(files).map(async (file: File) => {
+      const fileArray = Array.from(files);
+      const totalFiles = fileArray.length;
+      console.log(`Starting upload for ${totalFiles} files...`);
+      
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i] as File;
+        
         // Validate file type
         if (!file.type.startsWith('image/')) {
           console.warn(`File "${file.name}" is not an image.`);
-          return null;
+          continue;
         }
 
-        // Validate size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          console.warn(`Image "${file.name}" is too large. Max 5MB.`);
-          return null;
+        // Validate size (max 10MB now, increased from 5MB)
+        if (file.size > 10 * 1024 * 1024) {
+          alert(`Image "${file.name}" is too large. Max 10MB.`);
+          continue;
         }
         
-        // Storage path: products/{userId}/{timestamp}_{filename}
-        const storageRef = ref(storage, `products/${user.uid}/${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        return getDownloadURL(snapshot.ref);
-      });
-
-      const results = await Promise.all(uploadPromises);
-      const successfulUploads = results.filter((url): url is string => url !== null);
-      
-      setFormData({ 
-        ...formData, 
-        images: [...currentImages, ...successfulUploads] 
-      });
-
-      if (successfulUploads.length < files.length) {
-        alert('Some files could not be uploaded (wrong format or too large).');
+        const timestamp = Date.now() + Math.random().toString(36).substring(7);
+        const storageRef = ref(storage, `products/${user.uid}/${timestamp}_${file.name}`);
+        
+        console.log(`Uploading ${file.name}... (${i + 1}/${totalFiles})`);
+        const snapshot = await uploadBytes(storageRef, file, { 
+          contentType: file.type,
+          customMetadata: {
+            uploadedBy: user.uid,
+            originalName: file.name
+          }
+        });
+        
+        const url = await getDownloadURL(snapshot.ref);
+        console.log(`Upload complete for ${file.name}: ${url}`);
+        
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, url]
+        }));
       }
+      console.log('All files processed.');
 
     } catch (error: any) {
-      console.error('Error uploading images:', error);
-      alert('Failed to upload images: ' + (error.message || 'Check your connection.'));
+      console.error('CRITICAL: Error uploading images:', error);
+      alert('Failed to upload images. Error: ' + (error.message || 'Check your connection.'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -97,6 +106,12 @@ export default function InventoryList() {
     const newImages = [...formData.images];
     newImages.splice(index, 1);
     setFormData({ ...formData, images: newImages });
+  };
+
+  const clearImages = () => {
+    if (confirm('Are you sure you want to remove all images?')) {
+      setFormData({ ...formData, images: [] });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -317,7 +332,18 @@ export default function InventoryList() {
               <h2 className="text-2xl font-bold">{isEditing ? 'Edit Product' : 'Add to Inventory'}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                   <label className="block text-sm font-bold text-gray-700 mb-2">Product Images</label>
+                   <div className="flex items-center justify-between mb-2">
+                     <label className="block text-sm font-bold text-gray-700">Product Images</label>
+                     {formData.images.length > 0 && (
+                       <button 
+                        type="button" 
+                        onClick={clearImages}
+                        className="text-[10px] font-black text-red-500 uppercase tracking-widest hover:underline"
+                       >
+                        Clear All
+                       </button>
+                     )}
+                   </div>
                    <div className="space-y-4">
                      {formData.images.length > 0 && (
                        <div className="grid grid-cols-3 gap-2">
@@ -333,6 +359,13 @@ export default function InventoryList() {
                              </button>
                            </div>
                          ))}
+                       </div>
+                     )}
+                     
+                     {isUploading && (
+                       <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-3">
+                          <Loader2 size={16} className="animate-spin text-blue-600" />
+                          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Uploading your images, please wait...</p>
                        </div>
                      )}
                      

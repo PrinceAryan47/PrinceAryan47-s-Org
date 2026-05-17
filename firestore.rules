@@ -78,20 +78,20 @@ service cloud.firestore {
     // 3. Orders Collection
     match /orders/{orderId} {
       function isValidOrder(data) {
-        return data.status in ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
-          && data.totalAmount is number && data.totalAmount >= 0;
+        return data.status in ['New', 'Processing', 'Ready', 'Shipped', 'Completed', 'Cancelled']
+          && (data.total is number || data.totalAmount is number);
       }
 
       allow get: if isSignedIn() && (existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid);
       allow list: if isSignedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
-      allow create: if isSignedIn() && incoming().buyerId == request.auth.uid && isValidOrder(incoming());
+      allow create: if isSignedIn() && (incoming().buyerId == request.auth.uid || incoming().sellerId == request.auth.uid) && isValidOrder(incoming());
       allow update: if isSignedIn() 
         && (existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid)
         && (
           // Action: Wholesaler updates status
-          (existing().sellerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status'])) ||
+          (existing().sellerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
           // Action: Buyer cancels
-          (existing().buyerId == request.auth.uid && incoming().status == 'cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status']))
+          (existing().buyerId == request.auth.uid && incoming().status == 'Cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
         );
     }
 

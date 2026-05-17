@@ -65,8 +65,8 @@ export default function Profile() {
 
     try {
       const storageRef = ref(storage, `profiles/${user.uid}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
+      const snapshot = await uploadBytes(storageRef, file, { contentType: file.type });
+      const downloadURL = await getDownloadURL(snapshot.ref);
 
       // Update Firestore
       await updateDoc(doc(db, 'users', user.uid), {
