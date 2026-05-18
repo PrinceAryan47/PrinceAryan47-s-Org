@@ -3,6 +3,44 @@ import { Mail, Phone, MapPin, Send, MessageSquare, HelpCircle, Store, ShieldChec
 import { motion } from 'motion/react';
 
 export default function Contact() {
+  const [submitted, setSubmitted] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setLoading(false);
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-8">
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto"
+        >
+          <ShieldCheck size={48} />
+        </motion.div>
+        <div className="space-y-4">
+           <h1 className="text-4xl font-black text-gray-900">Message Received!</h1>
+           <p className="text-gray-500 max-w-sm mx-auto font-medium">
+             Your inquiry has been logged in our system. A HAM GROUNDS representative will contact you via WhatsApp or Email within 24 hours.
+           </p>
+        </div>
+        <button 
+          onClick={() => setSubmitted(false)}
+          className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-blue-500/20 transition-all font-mono uppercase tracking-widest text-xs"
+        >
+          Send Another Inquiry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-20">
       <section className="max-w-7xl mx-auto px-4 py-20 grid lg:grid-cols-2 gap-16">
@@ -73,21 +111,21 @@ export default function Contact() {
              <h2 className="text-2xl font-bold text-gray-900">Send us a Message</h2>
           </div>
 
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
                <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Full Name</label>
-                  <input type="text" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" placeholder="Your name" />
+                  <input required type="text" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" placeholder="Your name" />
                </div>
                <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Phone Number</label>
-                  <input type="text" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" placeholder="+256..." />
+                  <input required type="text" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" placeholder="+256..." />
                </div>
             </div>
 
             <div className="space-y-2">
                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Inquiry Type</label>
-               <select className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium bg-white">
+               <select required className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium bg-white">
                   <option>Wholesaler Registration</option>
                   <option>Buyer Support</option>
                   <option>Technical Issue</option>
@@ -97,11 +135,17 @@ export default function Contact() {
 
             <div className="space-y-2">
                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Message</label>
-               <textarea rows={4} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" placeholder="How can we help?"></textarea>
+               <textarea required rows={4} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" placeholder="How can we help?"></textarea>
             </div>
 
-            <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95">
-              Send Message <Send size={20} />
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-50"
+            >
+              {loading ? 'Sending...' : (
+                <>Send Message <Send size={20} /></>
+              )}
             </button>
           </form>
         </motion.div>

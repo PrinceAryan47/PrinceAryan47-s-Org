@@ -22,8 +22,10 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
+import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Shops from './pages/Shops';
+import ShopDetail from './pages/ShopDetail';
 import Profile from './pages/Profile';
 import BuyerOrders from './pages/BuyerOrders';
 import Favorites from './pages/Favorites';
@@ -71,9 +73,11 @@ export default function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/register-seller" element={<Register />} />
                 <Route path="/products" element={<Products />} />
+                <Route path="/products/:id" element={<ProductDetail />} />
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/shops" element={<Shops />} />
+                <Route path="/shops/:id" element={<ShopDetail />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 

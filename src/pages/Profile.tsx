@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { 
   updateProfile, 
   sendPasswordResetEmail, 
@@ -39,24 +39,37 @@ export default function Profile() {
   const [resetSent, setResetSent] = useState(false);
 
   const [formData, setFormData] = useState({
-    displayName: user?.displayName || '',
-    phoneNumber: user?.phoneNumber || '',
-    location: user?.location || '',
+    displayName: '',
+    phoneNumber: '',
+    location: '',
   });
+
+  React.useEffect(() => {
+    if (user) {
+      setFormData({
+        displayName: user.displayName || '',
+        phoneNumber: user.phoneNumber || '',
+        location: user.location || '',
+      });
+    }
+  }, [user]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file.');
+    const isImage = file.type.startsWith('image/') || 
+                    /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tiff|svg)$/i.test(file.name.toLowerCase());
+    
+    if (!isImage) {
+      setError('Please select a valid image file (JPG, PNG, WebP, HEIC, etc.).');
       return;
     }
 
-    // Validate size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setError('Image must be less than 2MB.');
+    // Validate size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be less than 5MB.');
       return;
     }
 
@@ -65,28 +78,35 @@ export default function Profile() {
 
     try {
       const storageRef = ref(storage, `profiles/${user.uid}/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file, { contentType: file.type });
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      const uploadTask = uploadBytesResumable(storageRef, file, { contentType: file.type });
+      
+      uploadTask.on('state_changed', null, (err) => {
+        console.error(err);
+        setError('Upload failed: ' + err.message);
+        setUploadingImage(false);
+      }, async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-      // Update Firestore
-      await updateDoc(doc(db, 'users', user.uid), {
-        photoURL: downloadURL,
-        updatedAt: new Date().toISOString()
-      });
-
-      // Update Firebase Auth Profile
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, {
-          photoURL: downloadURL
+        // Update Firestore
+        await updateDoc(doc(db, 'users', user.uid), {
+          photoURL: downloadURL,
+          updatedAt: new Date().toISOString()
         });
-      }
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+        // Update Firebase Auth Profile
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, {
+            photoURL: downloadURL
+          });
+        }
+
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+        setUploadingImage(false);
+      });
     } catch (err: any) {
       console.error(err);
       setError('Failed to upload image. Please try again.');
-    } finally {
       setUploadingImage(false);
     }
   };
@@ -310,7 +330,7 @@ export default function Profile() {
                           ref={fileInputRef} 
                           onChange={handleImageChange} 
                           className="hidden" 
-                          accept="image/*"
+                          accept="image/*,.heic,.heif,.webp,.svg,.bmp"
                         />
                      </div>
                   </div>

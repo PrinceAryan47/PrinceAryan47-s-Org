@@ -5,7 +5,7 @@
 
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, getDocFromServer } from 'firebase/firestore';
+import { doc, getDoc, getDocFromServer, onSnapshot } from 'firebase/firestore';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
 
@@ -37,34 +37,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-        console.log("Firestore connection successful.");
-      } catch (error) {
-        if(error instanceof Error && error.message.includes('the client is offline')) {
-          console.warn("Firestore is operating in offline mode. This might be due to network restrictions or configuration.");
-        } else {
-          console.error("Firestore connection error:", error);
-        }
+    let unsubscribeDoc: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Clean up previous doc listener if any
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+        unsubscribeDoc = null;
       }
-    }
-    testConnection();
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        
+        // Initial fetch
         try {
-          let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          
-          // Retry logic: if user exists in Auth but not yet in Firestore, it might be a registration in progress
-          if (!userDoc.exists()) {
-             // Wait 2 seconds and try once more - important for registration race conditions
-             await new Promise(resolve => setTimeout(resolve, 2000));
-             userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          }
-
-          if (userDoc.exists()) {
-            const data = userDoc.data();
+          const initialSnap = await getDoc(userDocRef);
+          if (initialSnap.exists()) {
+            const data = initialSnap.data();
             setUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
@@ -72,37 +61,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               ...(data as any),
             });
           } else {
-            // New user or profile not found
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              role: 'buyer', // Default role
-            });
-          }
-        } catch (error) {
-          // If offline, we might still want to set the user state based on auth only if we can't reach Firestore
-          const isOffline = error instanceof Error && error.message.includes('offline');
-          
-          if (isOffline) {
-             console.warn("Using offline auth state for:", firebaseUser.uid);
              setUser({
                uid: firebaseUser.uid,
                email: firebaseUser.email,
                displayName: firebaseUser.displayName,
                role: 'buyer', 
              });
-          } else {
-             handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
           }
+        } catch (err) {
+          console.warn("Auth: Initial fetch error", err);
         }
+
+        // Set up real-time listener
+        unsubscribeDoc = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setUser(prev => ({
+              ...prev,
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName || data?.fullName || data?.displayName || null,
+              ...(data as any),
+            }));
+          }
+        }, (error) => {
+          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+        });
+
+        setLoading(false);
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeDoc) unsubscribeDoc();
+    };
   }, []);
 
   const logout = async () => {

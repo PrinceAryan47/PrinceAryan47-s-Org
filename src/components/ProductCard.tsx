@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star, Eye, Heart, Phone, MessageCircle, ShoppingBag, Package, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { db } from '../firebase';
@@ -12,13 +13,16 @@ import ReviewList from './ReviewList';
 
 interface ProductCardProps {
   product: Product;
+  key?: any;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const navigate = useNavigate();
   const { addToCart } = useCart();
   const { user } = useAuth();
   const { reviews, loading: reviewsLoading } = useProductReviews(product.id);
   const [showDetails, setShowDetails] = React.useState(false);
+  const [imgError, setImgError] = React.useState(false);
   const [activeImageIndex, setActiveImageIndex] = React.useState(0);
 
   const averageRating = reviews.length > 0
@@ -48,6 +52,10 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
+  const openProductPage = () => {
+    navigate(`/products/${product.id}`);
+  };
+
   return (
     <>
       <motion.div
@@ -55,18 +63,19 @@ export default function ProductCard({ product }: ProductCardProps) {
         className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all group"
       >
         <div className="relative aspect-square overflow-hidden bg-gray-50">
-          {product.images && product.images.length > 0 ? (
+          {(product.images && product.images.length > 0 && product.images[0] && !imgError) ? (
             <img
               src={product.images[0]}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 cursor-pointer"
               referrerPolicy="no-referrer"
-              onClick={() => setShowDetails(true)}
+              onClick={openProductPage}
+              onError={() => setImgError(true)}
             />
           ) : (
             <div 
               className="w-full h-full flex flex-col items-center justify-center text-gray-200 cursor-pointer"
-              onClick={() => setShowDetails(true)}
+              onClick={openProductPage}
             >
                <Package size={48} />
                <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-widest">No Image available</p>
@@ -76,12 +85,12 @@ export default function ProductCard({ product }: ProductCardProps) {
             <button className="p-2 bg-white rounded-full shadow-md text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors">
               <Heart size={18} />
             </button>
-            <button 
-              onClick={() => setShowDetails(true)}
+            <Link 
+              to={`/products/${product.id}`}
               className="p-2 bg-white rounded-full shadow-md text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
             >
               <Eye size={18} />
-            </button>
+            </Link>
           </div>
           {product.stock < 10 && (
             <div className="absolute bottom-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded">
@@ -101,7 +110,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
           
           <h3 
-            onClick={() => setShowDetails(true)}
+            onClick={openProductPage}
             className="font-bold text-gray-900 line-clamp-1 hover:text-blue-600 transition-colors cursor-pointer"
           >
             {product.name}
@@ -201,7 +210,10 @@ export default function ProductCard({ product }: ProductCardProps) {
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <Package size={100} className="text-gray-200" />
+                    <div className="flex flex-col items-center justify-center text-gray-200">
+                      <Package size={100} />
+                      <p className="text-sm font-bold text-gray-400 mt-4 uppercase tracking-widest text-center">No Image available</p>
+                    </div>
                   )}
                 </div>
                 

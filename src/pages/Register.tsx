@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { Mail, Lock, UserPlus, Store, User, Building2, Phone, MessageCircle } from 'lucide-react';
+import { Mail, Lock, UserPlus, Store, User, Building2, Phone, MessageCircle, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { getAuthErrorMessage } from '../lib/authUtils';
+import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
+import { useTranslation } from 'react-i18next';
 
 export default function Register() {
+  const { t } = useTranslation();
   const location = useLocation();
   const isSellerReg = location.pathname === '/register-seller';
   const [role, setRole] = useState<'buyer' | 'wholesaler'>(isSellerReg ? 'wholesaler' : 'buyer');
@@ -25,6 +28,7 @@ export default function Register() {
     shopNo: '',
     block: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,10 +100,15 @@ export default function Register() {
 
     try {
       // Check if email already exists in our unique tracking collection
-      const emailRef = doc(db, 'unique_emails', normalizedEmail);
-      const emailDoc = await getDoc(emailRef);
+      const emailPath = `unique_emails/${normalizedEmail}`;
+      let emailDoc;
+      try {
+        emailDoc = await getDoc(doc(db, 'unique_emails', normalizedEmail));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, emailPath);
+      }
 
-      if (emailDoc.exists()) {
+      if (emailDoc?.exists()) {
         setError('This email is already registered. Please use another or sign in.');
         setLoading(false);
         return;
@@ -131,17 +140,21 @@ export default function Register() {
       });
 
       // Save unique email record
-      batch.set(emailRef, {
+      batch.set(doc(db, 'unique_emails', normalizedEmail), {
         uid: user.uid,
         createdAt: serverTimestamp()
       });
 
-      await batch.commit();
+      try {
+        await batch.commit();
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, 'batch_registration');
+      }
 
       navigate(role === 'wholesaler' ? '/dashboard' : '/');
     } catch (err: any) {
       console.error(err);
-      setError(getAuthErrorMessage(err));
+      setError(t(getAuthErrorMessage(err)));
     } finally {
       setLoading(false);
     }
@@ -186,7 +199,7 @@ export default function Register() {
           {/* Form */}
           <div className="md:col-span-3 p-8 space-y-8">
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('nav.register')}</h1>
               <p className="text-gray-500 text-sm">Join the marketplace as a {role}</p>
             </div>
 
@@ -218,7 +231,7 @@ export default function Register() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('auth.fullname')}</label>
                    <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input 
@@ -232,7 +245,7 @@ export default function Register() {
                    </div>
                 </div>
                 <div className="space-y-1">
-                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
+                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('auth.phone')}</label>
                    <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input 
@@ -250,7 +263,7 @@ export default function Register() {
               </div>
 
               <div className="space-y-1">
-                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">WhatsApp Number</label>
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('auth.whatsapp')}</label>
                  <div className="relative">
                     <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input 
@@ -269,7 +282,7 @@ export default function Register() {
               {role === 'wholesaler' && (
                 <div className="space-y-4 pt-2">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Business Name</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('auth.biz_name')}</label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input 
@@ -284,7 +297,7 @@ export default function Register() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Shop No.</label>
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('auth.shop_no')}</label>
                        <input 
                         required={role === 'wholesaler'}
                         type="text" 
@@ -295,7 +308,7 @@ export default function Register() {
                       />
                     </div>
                     <div className="space-y-1">
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Block</label>
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('auth.block')}</label>
                        <input 
                         required={role === 'wholesaler'}
                         type="text" 
@@ -310,7 +323,7 @@ export default function Register() {
               )}
 
               <div className="space-y-1">
-                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('auth.email_addr')}</label>
                  <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input 
@@ -325,17 +338,24 @@ export default function Register() {
               </div>
 
               <div className="space-y-1">
-                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Password</label>
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('auth.password')}</label>
                  <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input 
                       required
-                      type="password" 
-                      className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
+                      type={showPassword ? "text" : "password"} 
+                      className="w-full pl-9 pr-12 py-2 text-sm bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="••••••••" 
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                  </div>
               </div>
 
@@ -343,14 +363,14 @@ export default function Register() {
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 mt-4 disabled:opacity-50"
               >
-                {loading ? 'Creating Account...' : 'Register Now'} <UserPlus size={18} />
+                {loading ? t('common.loading') : t('nav.register')} <UserPlus size={18} />
               </button>
             </form>
 
             <div className="text-center pt-2">
               <p className="text-xs text-gray-500">
-                Already have an account? {' '}
-                <Link to="/login" className="text-blue-600 font-bold hover:underline">Sign In</Link>
+                {t('auth.already_have')} {' '}
+                <Link to="/login" className="text-blue-600 font-bold hover:underline">{t('auth.signin')}</Link>
               </p>
             </div>
           </div>

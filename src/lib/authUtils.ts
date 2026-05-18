@@ -3,24 +3,24 @@ export function getAuthErrorMessage(error: any): string {
   
   switch (code) {
     case 'auth/invalid-email':
-      return 'The email address is badly formatted.';
+      return 'auth.errors.invalid_email';
     case 'auth/user-disabled':
-      return 'This user account has been disabled.';
+      return 'auth.errors.user_disabled';
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return 'Invalid email or password.';
+      return 'auth.errors.invalid_credential';
     case 'auth/email-already-in-use':
-      return 'The email address is already in use by another account.';
+      return 'auth.errors.email_already_in_use';
     case 'auth/weak-password':
-      return 'The password is too weak. It must be at least 6 characters.';
+      return 'auth.errors.weak_password';
     case 'auth/operation-not-allowed':
-      return 'Email/password accounts are not enabled. Please contact support.';
+      return 'auth.errors.operation_not_allowed';
     case 'auth/network-request-failed':
-      return 'Network error. Please check your internet connection.';
+      return 'auth.errors.network_request_failed';
     case 'auth/too-many-requests':
-      return 'Too many failed login attempts. Please try again later.';
+      return 'auth.errors.too_many_requests';
     default:
-      return error.message || 'An unexpected error occurred. Please try again.';
+      return 'auth.errors.default';
   }
 }

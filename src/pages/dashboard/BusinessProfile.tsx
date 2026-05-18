@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Building2, 
   MapPin, 
@@ -9,27 +9,103 @@ import {
   User,
   ShieldCheck,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Camera,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../../firebase';
 import { motion, AnimatePresence } from 'motion/react';
+import imageCompression from 'browser-image-compression';
 
 export default function BusinessProfile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [logoUploadProgress, setLogoUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    businessName: user?.businessName || '',
-    phoneNumber: user?.phoneNumber || '',
-    whatsappNumber: user?.whatsappNumber || '',
-    shopNo: user?.shopNo || '',
-    block: user?.block || '',
-    displayName: user?.displayName || '',
+    businessName: '',
+    phoneNumber: '',
+    whatsappNumber: '',
+    shopNo: '',
+    block: '',
+    displayName: '',
+    photoURL: '',
   });
+
+  React.useEffect(() => {
+    if (user) {
+      setFormData({
+        businessName: user.businessName || '',
+        phoneNumber: user.phoneNumber || '',
+        whatsappNumber: user.whatsappNumber || '',
+        shopNo: user.shopNo || '',
+        block: user.block || '',
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+      });
+    }
+  }, [user]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Check if it's an image
+    const isImage = file.type.startsWith('image/') || 
+                    /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tiff|svg)$/i.test(file.name.toLowerCase());
+    
+    if (!isImage) {
+      alert("Please upload a valid image file.");
+      return;
+    }
+
+    setIsUploading(true);
+    setLogoUploadProgress(0);
+    try {
+      // Disable compression for now to isolate issues
+      const fileToUpload: File = file;
+
+      const storageRef = ref(storage, `logos/${user.uid}/${Date.now()}_logo`);
+      
+      console.log("BusinessProfile: Starting upload...");
+      const uploadTask = uploadBytesResumable(storageRef, fileToUpload, {
+        contentType: fileToUpload.type
+      });
+
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setLogoUploadProgress(progress);
+        },
+        (err) => {
+          console.error("BusinessProfile: Logo upload error:", err);
+          alert(`Upload failed: ${err.message}`);
+          setIsUploading(false);
+        },
+        async () => {
+          console.log("BusinessProfile: Logo upload complete, fetching URL...");
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          setFormData(prev => ({ ...prev, photoURL: url }));
+          await updateDoc(doc(db, 'users', user.uid), { photoURL: url });
+          console.log("BusinessProfile: Success!");
+          setIsUploading(false);
+          setLogoUploadProgress(0);
+        }
+      );
+    } catch (err) {
+      console.error("BusinessProfile: Error in handleLogoUpload:", err);
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Upload failed: ${msg}`);
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,10 +286,44 @@ export default function BusinessProfile() {
          <div className="space-y-6">
             <div className="bg-gray-900 text-white p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
                <div className="relative z-10">
-                  <div className="h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 text-2xl font-black">
-                     {user?.businessName?.charAt(0) || 'H'}
+                  <div className="relative group w-20 h-20 mb-6">
+                    <div className="h-20 w-20 bg-blue-600 rounded-3xl flex items-center justify-center text-3xl font-black overflow-hidden border-2 border-white/20 shadow-xl group-hover:border-blue-400 transition-all">
+                       {formData.photoURL ? (
+                         <img src={formData.photoURL} alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                       ) : (
+                         user?.businessName?.charAt(0) || 'H'
+                       )}
+                    </div>
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="absolute -bottom-2 -right-2 p-2 bg-white text-gray-900 rounded-xl shadow-lg border border-gray-100 hover:bg-blue-50 transition-all disabled:opacity-50"
+                    >
+                       {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*,.heic,.heif,.webp,.svg,.bmp" 
+                      onChange={handleLogoUpload} 
+                    />
                   </div>
-                  <h4 className="text-xl font-black">{user?.businessName || 'Your Store'}</h4>
+                  {isUploading && (
+                    <div className="mt-2 w-full max-w-[100px]">
+                      <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-blue-500" 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${logoUploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-[8px] font-black uppercase text-center mt-1 text-blue-400 tracking-widest">
+                        {logoUploadProgress === 100 ? 'Finishing...' : `Uploading ${Math.round(logoUploadProgress)}%`}
+                      </p>
+                    </div>
+                  )}
+                  <h4 className="text-xl font-black">{formData.businessName || 'Your Store'}</h4>
                   <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Verified Wholesaler</p>
                   
                   <div className="mt-10 space-y-4">

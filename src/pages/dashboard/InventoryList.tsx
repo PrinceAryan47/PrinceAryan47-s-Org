@@ -5,8 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useWholesalerProducts } from '../../hooks/useDashboardData';
 import { db, storage } from '../../firebase';
 import { collection, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useTranslation } from 'react-i18next';
+
+import imageCompression from 'browser-image-compression';
 
 export default function InventoryList() {
   const { t } = useTranslation();
@@ -20,6 +22,9 @@ export default function InventoryList() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [formData, setFormData] = useState({
     name: '',
     wholesalePrice: '',
@@ -47,59 +52,114 @@ export default function InventoryList() {
     setIsAdding(true);
   };
 
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await processFiles(e.dataTransfer.files);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !user) return;
+    if (files) {
+      await processFiles(files);
+    }
+  };
 
+  const processFiles = async (files: FileList) => {
+    if (!user) return;
     setIsUploading(true);
+    setUploadError(null);
     
     try {
-      const fileArray = Array.from(files);
-      const totalFiles = fileArray.length;
-      console.log(`Starting upload for ${totalFiles} files...`);
+      const fileArray = Array.from(files).filter(f => {
+        const type = f.type.toLowerCase();
+        const name = f.name.toLowerCase();
+        return type.startsWith('image/') || 
+               /\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tiff|svg)$/i.test(name);
+      });
       
-      for (let i = 0; i < fileArray.length; i++) {
-        const file = fileArray[i] as File;
-        
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-          console.warn(`File "${file.name}" is not an image.`);
-          continue;
-        }
-
-        // Validate size (max 10MB now, increased from 5MB)
-        if (file.size > 10 * 1024 * 1024) {
-          alert(`Image "${file.name}" is too large. Max 10MB.`);
-          continue;
-        }
-        
-        const timestamp = Date.now() + Math.random().toString(36).substring(7);
-        const storageRef = ref(storage, `products/${user.uid}/${timestamp}_${file.name}`);
-        
-        console.log(`Uploading ${file.name}... (${i + 1}/${totalFiles})`);
-        const snapshot = await uploadBytes(storageRef, file, { 
-          contentType: file.type,
-          customMetadata: {
-            uploadedBy: user.uid,
-            originalName: file.name
-          }
-        });
-        
-        const url = await getDownloadURL(snapshot.ref);
-        console.log(`Upload complete for ${file.name}: ${url}`);
-        
-        setFormData(prev => ({
-          ...prev,
-          images: [...prev.images, url]
-        }));
+      if (fileArray.length === 0) {
+        setIsUploading(false);
+        return;
       }
-      console.log('All files processed.');
+      
+      // Temporary local previews
+      const localPreviews = fileArray.map(f => URL.createObjectURL(f));
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...localPreviews]
+      }));
 
+      const compressionOptions = {
+        maxSizeMB: 2.0, // Increased size for better quality
+        maxWidthOrHeight: 1920, // Allow for HD resolution
+        useWebWorker: false
+      };
+      
+      const uploadPromises = fileArray.map(async (file, index) => {
+        try {
+          // Temporarily disable compression to isolate the issue
+          const fileToUpload: File = file;
+
+          const timestamp = Date.now() + Math.random().toString(36).substring(7);
+          const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const storageRef = ref(storage, `products/${user.uid}/${timestamp}_${sanitizedName}`);
+          
+          console.log(`InventoryList: Uploading ${file.name} to ${storageRef.fullPath}...`);
+          
+          // Use simple uploadBytes first to see if it's more reliable in this env
+          const snapshot = await uploadBytes(storageRef, fileToUpload, { 
+            contentType: file.type,
+            cacheControl: 'public,max-age=3600',
+            customMetadata: { uploadedBy: user.uid, originalName: file.name }
+          });
+          
+          console.log(`InventoryList: Get URL for ${file.name}`);
+          const url = await getDownloadURL(snapshot.ref);
+          
+          setFormData(prev => {
+            const newImages = [...prev.images];
+            const localPreviewUrl = localPreviews[index];
+            const localIdx = newImages.indexOf(localPreviewUrl);
+            if (localIdx !== -1) {
+              newImages[localIdx] = url;
+            } else {
+              newImages.push(url);
+            }
+            return { ...prev, images: newImages };
+          });
+          
+          return url;
+        } catch (uploadErr) {
+          console.error(`InventoryList: Failed to upload ${file.name}:`, uploadErr);
+          setUploadError(`Failed to upload ${file.name}: ${uploadErr instanceof Error ? uploadErr.message : 'Storage error'}`);
+          return null;
+        }
+      });
+
+      await Promise.all(uploadPromises);
     } catch (error: any) {
-      console.error('CRITICAL: Error uploading images:', error);
-      alert('Failed to upload images. Error: ' + (error.message || 'Check your connection.'));
+      console.error('InventoryList: Error processing files:', error);
+      alert('Failed to upload images.');
     } finally {
       setIsUploading(false);
+      setUploadProgress({});
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -131,6 +191,7 @@ export default function InventoryList() {
       }
     }
 
+    setIsSaving(true);
     try {
       const productData = {
         ...formData,
@@ -173,6 +234,9 @@ export default function InventoryList() {
       });
     } catch (error) {
       console.error('Error saving product:', error);
+      alert('Error saving to database. Check your connection.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -257,6 +321,10 @@ export default function InventoryList() {
                     alt={item.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      (e.currentTarget.parentElement as HTMLElement).innerHTML = '<div class="flex flex-col items-center justify-center text-gray-200"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="M16.5 9.4 7.5 4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/></svg></div>';
+                    }}
                   />
                 ) : (
                   <Package size={32} className="text-gray-200" />
@@ -342,7 +410,7 @@ export default function InventoryList() {
                         onClick={clearImages}
                         className="text-[10px] font-black text-red-500 uppercase tracking-widest hover:underline"
                        >
-                        Clear All
+                        {t('inventory.clear_all')}
                        </button>
                      )}
                    </div>
@@ -352,6 +420,11 @@ export default function InventoryList() {
                          {formData.images.map((url, idx) => (
                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 group">
                              <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                             {uploadProgress[url] !== undefined && uploadProgress[url] < 100 && (
+                               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                 <p className="text-[10px] font-black text-white">{Math.round(uploadProgress[url])}%</p>
+                               </div>
+                             )}
                              <button 
                                type="button"
                                onClick={() => removeImage(idx)}
@@ -364,43 +437,64 @@ export default function InventoryList() {
                        </div>
                      )}
                      
+                     {uploadError && (
+                       <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex flex-col gap-2">
+                          <div className="flex items-center gap-3">
+                            <AlertTriangle size={16} className="text-red-600" />
+                            <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Upload Failed</p>
+                          </div>
+                          <p className="text-[10px] text-red-500 font-medium">{uploadError}</p>
+                       </div>
+                     )}
+                     
                      {isUploading && (
                        <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-3">
                           <Loader2 size={16} className="animate-spin text-blue-600" />
-                          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Uploading your images, please wait...</p>
+                          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{t('inventory.uploading_wait')}</p>
                        </div>
                      )}
                      
                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
+                        <div 
+                          className={`relative border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all p-4 ${
+                            dragActive ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-400"
+                          } ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                          onDragEnter={handleDrag}
+                          onDragLeave={handleDrag}
+                          onDragOver={handleDrag}
+                          onDrop={handleDrop}
                           onClick={() => !isUploading && fileInputRef.current?.click()}
-                          className={`border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-400 p-4 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
                         >
-                          <Upload size={20} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">{isUploading ? 'Uploading...' : 'Upload File'}</span>
-                        </button>
+                          <Upload size={20} className={dragActive ? "text-blue-500" : ""} />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-center">
+                            {isUploading ? t('common.loading') : dragActive ? t('inventory.drop_here') : t('inventory.drop_click_upload')}
+                          </span>
+                        </div>
 
                         <div className="flex flex-col gap-2">
                            <div className="relative">
                               <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                               <input 
                                 type="text" 
-                                placeholder="Paste Image URL..." 
+                                placeholder={t('inventory.paste_url_placeholder')} 
                                 className="w-full pl-9 pr-4 py-3 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-xs bg-gray-50"
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     e.preventDefault();
-                                    const val = (e.target as HTMLInputElement).value;
+                                    const val = (e.currentTarget as HTMLInputElement).value.trim();
                                     if (val) {
-                                      setFormData({...formData, images: [...formData.images, val]});
-                                      (e.target as HTMLInputElement).value = '';
+                                      if (val.startsWith('http')) {
+                                        setFormData(prev => ({...prev, images: [...prev.images, val]}));
+                                        e.currentTarget.value = '';
+                                      } else {
+                                        alert('Please enter a valid URL starting with http:// or https://');
+                                      }
                                     }
                                   }
                                 }}
                               />
                            </div>
-                           <p className="text-[9px] text-gray-400 italic px-2">Press Enter to add the link</p>
+                           <p className="text-[9px] text-gray-400 italic px-2">{t('inventory.press_enter_hint')}</p>
                         </div>
                      </div>
                      
@@ -408,7 +502,7 @@ export default function InventoryList() {
                        type="file" 
                        ref={fileInputRef}
                        className="hidden" 
-                       accept="image/*"
+                       accept="image/*,.heic,.heif,.webp,.svg,.bmp"
                        multiple
                        onChange={handleFileChange}
                      />
@@ -506,8 +600,19 @@ export default function InventoryList() {
                     setIsEditing(false);
                     setCurrentId(null);
                   }} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">{t('inventory.cancel')}</button>
-                  <button type="submit" className="flex-[2] px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20">
-                    {isEditing ? t('inventory.update') : t('inventory.save')}
+                  <button 
+                    type="submit" 
+                    disabled={isSaving || isUploading}
+                    className="flex-[2] px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        {t('common.loading')}
+                      </>
+                    ) : (
+                      isEditing ? t('inventory.update') : t('inventory.save')
+                    )}
                   </button>
                 </div>
               </form>
