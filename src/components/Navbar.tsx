@@ -4,6 +4,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -14,6 +16,7 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -24,12 +27,12 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
   };
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Categories', path: '/categories' },
-    { name: 'Wholesale Shops', path: '/shops' },
-    { name: 'Products', path: '/products' },
-    { name: 'About', path: '/about' },
-    { name: 'Contact', path: '/contact' },
+    { name: t('nav.home'), path: '/' },
+    { name: t('nav.categories'), path: '/categories' },
+    { name: t('nav.shops'), path: '/shops' },
+    { name: t('nav.products'), path: '/products' },
+    { name: t('nav.about'), path: '/about' },
+    { name: t('nav.contact'), path: '/contact' },
   ];
 
   return (
@@ -70,7 +73,11 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
+            
             <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
               <Search size={20} />
             </button>
@@ -160,7 +167,7 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
                   onClick={() => setIsMenuOpen(false)}
                   className="block px-3 py-3 text-base font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
                 >
-                  Login / Register
+                  {t('nav.login')} / {t('nav.register')}
                 </Link>
               ) : (
                 <button
@@ -168,9 +175,14 @@ export default function Navbar({ onToggleSidebar, showSidebarButton }: NavbarPro
                   className="w-full text-left px-3 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
                 >
                   <LogOut size={18} />
-                  Logout
+                  {t('common.logout')}
                 </button>
               )}
+
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-between px-3">
+                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none">Language</span>
+                 <LanguageSwitcher />
+              </div>
             </div>
           </motion.div>
         )}

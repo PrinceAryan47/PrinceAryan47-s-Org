@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface SidebarProps {
   role: 'buyer' | 'wholesaler';
@@ -21,26 +22,27 @@ interface SidebarProps {
 export default function Sidebar({ role }: SidebarProps) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
   const buyerLinks = [
-    { name: 'My Profile', icon: Users, path: '/profile' },
-    { name: 'My Orders', icon: ShoppingCart, path: '/orders' },
-    { name: 'My Favorites', icon: Package, path: '/favorites' },
-    { name: 'Inquiries', icon: HelpCircle, path: '/inquiries' },
-    { name: 'Purchase History', icon: History, path: '/history' },
+    { name: t('sidebar.profile'), icon: Users, path: '/profile' },
+    { name: t('sidebar.orders'), icon: ShoppingCart, path: '/orders' },
+    { name: t('sidebar.favorites'), icon: Package, path: '/favorites' },
+    { name: t('sidebar.inquiries'), icon: HelpCircle, path: '/inquiries' },
+    { name: t('sidebar.history'), icon: History, path: '/history' },
   ];
 
   const wholesalerLinks = [
-    { name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
-    { name: 'Inventory', icon: Package, path: '/dashboard/inventory' },
-    { name: 'Manage Orders', icon: ShoppingCart, path: '/dashboard/orders' },
-    { name: 'Sales Ledger', icon: BookOpen, path: '/dashboard/ledger' },
-    { name: 'Growth Analytics', icon: TrendingUp, path: '/dashboard/analytics' },
-    { name: 'Business Profile', icon: Settings, path: '/dashboard/settings' },
+    { name: t('sidebar.dashboard'), icon: BarChart3, path: '/dashboard' },
+    { name: t('sidebar.inventory'), icon: Package, path: '/dashboard/inventory' },
+    { name: t('sidebar.manage_orders'), icon: ShoppingCart, path: '/dashboard/orders' },
+    { name: t('sidebar.ledger'), icon: BookOpen, path: '/dashboard/ledger' },
+    { name: t('sidebar.analytics'), icon: TrendingUp, path: '/dashboard/analytics' },
+    { name: t('sidebar.business_profile'), icon: Settings, path: '/dashboard/settings' },
   ];
 
   const links = role === 'wholesaler' ? wholesalerLinks : buyerLinks;
@@ -49,7 +51,7 @@ export default function Sidebar({ role }: SidebarProps) {
     <div className="h-full bg-white border-r border-gray-100 flex flex-col pt-6">
       <div className="px-6 mb-8">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-          {role === 'wholesaler' ? 'Seller Panel' : 'Buyer Hub'}
+          {role === 'wholesaler' ? t('sidebar.seller_panel') : t('sidebar.buyer_hub')}
         </h2>
       </div>
 
@@ -79,7 +81,7 @@ export default function Sidebar({ role }: SidebarProps) {
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all w-full"
         >
           <LogOut size={18} />
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </div>

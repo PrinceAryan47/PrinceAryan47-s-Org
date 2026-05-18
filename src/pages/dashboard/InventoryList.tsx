@@ -1,13 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { Search, Filter, Plus, Edit2, Trash2, Package, AlertTriangle, PackageSearch, Image as ImageIcon, Camera, Upload, X } from 'lucide-react';
+import { Search, Filter, Plus, Edit2, Trash2, Package, AlertTriangle, PackageSearch, Image as ImageIcon, Camera, Upload, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { useWholesalerProducts } from '../../hooks/useDashboardData';
 import { db, storage } from '../../firebase';
 import { collection, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useTranslation } from 'react-i18next';
 
 export default function InventoryList() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { products, loading } = useWholesalerProducts(user?.uid);
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,7 +126,7 @@ export default function InventoryList() {
     }
 
     if (formData.images.length === 0) {
-      if (!window.confirm('You haven\'t uploaded any images for this product. Do you want to continue anyway?')) {
+      if (!window.confirm("You haven't uploaded any images for this product. Do you want to continue anyway?")) {
         return;
       }
     }
@@ -192,8 +194,8 @@ export default function InventoryList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Digital Inventory</h1>
-          <p className="text-gray-500 text-sm">Monitor stock levels and manage wholesale pricing.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('inventory.title')}</h1>
+          <p className="text-gray-500 text-sm">{t('inventory.subtitle')}</p>
         </div>
         <button 
           onClick={() => {
@@ -213,7 +215,7 @@ export default function InventoryList() {
           className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 font-semibold"
         >
           <Plus size={20} />
-          <span>Add New Product</span>
+          <span>{t('inventory.add_product')}</span>
         </button>
       </div>
 
@@ -223,7 +225,7 @@ export default function InventoryList() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input 
             type="text" 
-            placeholder="Search inventory..."
+            placeholder={t('inventory.search_placeholder')}
             className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -231,7 +233,7 @@ export default function InventoryList() {
         </div>
         <button className="flex items-center gap-2 px-4 py-2 border border-gray-100 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
           <Filter size={18} />
-          Filter
+          {t('products.filters')}
         </button>
       </div>
 
@@ -283,12 +285,12 @@ export default function InventoryList() {
 
                 <div className="mt-4 grid grid-cols-2 gap-4">
                 <div className="p-3 bg-gray-50 rounded-xl">
-                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider text-center">Wholesale</p>
+                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider text-center">{t('inventory.wholesale')}</p>
                   <p className="font-bold text-gray-900 text-xs text-center">UGX {item.wholesalePrice.toLocaleString()}</p>
                 </div>
                 <div className={`p-3 rounded-xl text-center ${item.stock <= 10 ? 'bg-red-50 border border-red-100' : 'bg-gray-50'}`}>
                   <div className="flex items-center justify-center gap-1">
-                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">In Stock</p>
+                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t('inventory.in_stock')}</p>
                     {item.stock <= 10 && <AlertTriangle size={10} className="text-red-500" />}
                   </div>
                   <p className={`font-bold ${item.stock <= 10 ? 'text-red-600' : 'text-gray-900'}`}>{item.stock}</p>
@@ -296,8 +298,8 @@ export default function InventoryList() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center text-[10px] uppercase font-bold tracking-wider text-gray-400">
-                 <span>MOQ: {item.minQuantity}</span>
-                 <span className="text-gray-900">Profit/Unit: UGX {(item.wholesalePrice - (item.costPrice || 0)).toLocaleString()}</span>
+                 <span>{t('inventory.moq')}: {item.minQuantity}</span>
+                 <span className="text-gray-900">{t('inventory.profit')}: UGX {(item.wholesalePrice - (item.costPrice || 0)).toLocaleString()}</span>
               </div>
             </div>
           </motion.div>
@@ -307,7 +309,7 @@ export default function InventoryList() {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
               <PackageSearch size={32} />
             </div>
-            <p className="text-gray-500 font-medium">No products found in your inventory.</p>
+            <p className="text-gray-500 font-medium">{t('products.no_found_title')}</p>
           </div>
         )}
       </div>
@@ -329,7 +331,7 @@ export default function InventoryList() {
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               className="bg-white w-full max-w-lg rounded-3xl p-8 relative shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto"
             >
-              <h2 className="text-2xl font-bold">{isEditing ? 'Edit Product' : 'Add to Inventory'}</h2>
+              <h2 className="text-2xl font-bold">{isEditing ? t('inventory.edit_product') : t('inventory.add_to_inv')}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                    <div className="flex items-center justify-between mb-2">
@@ -414,7 +416,7 @@ export default function InventoryList() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Product Name</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">{t('inventory.prod_name')}</label>
                   <input 
                     required
                     type="text" 
@@ -426,7 +428,7 @@ export default function InventoryList() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">{t('inventory.description')}</label>
                   <textarea 
                     className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]" 
                     placeholder="Describe your product features, quality, etc." 
@@ -437,7 +439,7 @@ export default function InventoryList() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Cost Price (UGX)</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{t('inventory.cost_price')}</label>
                     <input 
                       required
                       type="number" 
@@ -448,7 +450,7 @@ export default function InventoryList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Wholesale Price (UGX)</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{t('inventory.wholesale_price')}</label>
                     <input 
                       required
                       type="number" 
@@ -461,7 +463,7 @@ export default function InventoryList() {
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Stock</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{t('inventory.stock')}</label>
                     <input 
                       required
                       type="number" 
@@ -472,7 +474,7 @@ export default function InventoryList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Min Order</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{t('inventory.min_order')}</label>
                     <input 
                       required
                       type="number" 
@@ -483,7 +485,7 @@ export default function InventoryList() {
                     />
                   </div>
                    <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{t('inventory.category')}</label>
                     <select 
                       className="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       value={formData.category}
@@ -503,9 +505,9 @@ export default function InventoryList() {
                     setIsAdding(false);
                     setIsEditing(false);
                     setCurrentId(null);
-                  }} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
+                  }} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">{t('inventory.cancel')}</button>
                   <button type="submit" className="flex-[2] px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20">
-                    {isEditing ? 'Update Product' : 'Save Product'}
+                    {isEditing ? t('inventory.update') : t('inventory.save')}
                   </button>
                 </div>
               </form>

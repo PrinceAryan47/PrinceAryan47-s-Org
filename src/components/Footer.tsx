@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Store, Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -18,8 +21,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm leading-relaxed">
-              Uganda's leading wholesale marketplace connecting traders directly with wholesalers. 
-              Modernizing trade through digital record keeping and inventory management.
+              {t('footer.about_text')}
             </p>
             <div className="flex gap-4">
               <a href="#" className="hover:text-blue-400 transition-colors"><Facebook size={20} /></a>
@@ -30,30 +32,30 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-white font-bold mb-6">Quick Links</h3>
+            <h3 className="text-white font-bold mb-6">{t('footer.quick_links')}</h3>
             <ul className="space-y-4 text-sm">
-              <li><Link to="/products" className="hover:text-blue-400">Browse Products</Link></li>
-              <li><Link to="/shops" className="hover:text-blue-400">Wholesale Shops</Link></li>
-              <li><Link to="/categories" className="hover:text-blue-400">Categories</Link></li>
-              <li><Link to="/about" className="hover:text-blue-400">About Us</Link></li>
-              <li><Link to="/contact" className="hover:text-blue-400">Contact</Link></li>
+              <li><Link to="/products" className="hover:text-blue-400">{t('nav.products')}</Link></li>
+              <li><Link to="/shops" className="hover:text-blue-400">{t('nav.shops')}</Link></li>
+              <li><Link to="/categories" className="hover:text-blue-400">{t('nav.categories')}</Link></li>
+              <li><Link to="/about" className="hover:text-blue-400">{t('nav.about')}</Link></li>
+              <li><Link to="/contact" className="hover:text-blue-400">{t('nav.contact')}</Link></li>
             </ul>
           </div>
 
           {/* Support */}
           <div>
-            <h3 className="text-white font-bold mb-6">Support</h3>
+            <h3 className="text-white font-bold mb-6">{t('footer.support')}</h3>
             <ul className="space-y-4 text-sm">
               <li><Link to="/faq" className="hover:text-blue-400">FAQ</Link></li>
               <li><Link to="/terms" className="hover:text-blue-400">Terms of Service</Link></li>
               <li><Link to="/privacy" className="hover:text-blue-400">Privacy Policy</Link></li>
-              <li><Link to="/register-seller" className="hover:text-blue-400 font-semibold text-blue-400">Become a Seller</Link></li>
+              <li><Link to="/register" className="hover:text-blue-400 font-semibold text-blue-400">{t('hero.cta_sell')}</Link></li>
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h3 className="text-white font-bold mb-6">Contact Us</h3>
+            <h3 className="text-white font-bold mb-6">{t('footer.contact')}</h3>
             <ul className="space-y-4 text-sm">
               <li className="flex items-start gap-3">
                 <MapPin className="text-blue-400 shrink-0" size={18} />
@@ -76,8 +78,8 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-          <p>&copy; {new Date().getFullYear()} HAM Grounds. All rights reserved.</p>
-          <p className="font-bold text-blue-400 tracking-wider uppercase">Made by KASUMBA TREASURE</p>
+          <p>&copy; {new Date().getFullYear()} HAM Grounds. {t('footer.all_rights')}</p>
+          <p className="font-bold text-blue-400 tracking-wider uppercase">{t('footer.made_by')}</p>
           <p className="hidden md:block">Designed for Ugandan Wholesalers.</p>
         </div>
       </div>

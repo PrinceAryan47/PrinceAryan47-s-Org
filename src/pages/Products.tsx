@@ -4,9 +4,11 @@ import ProductCard from '../components/ProductCard';
 import { motion } from 'motion/react';
 import { useProducts } from '../hooks/useProducts';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Products() {
   const { products, loading } = useProducts();
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -41,8 +43,8 @@ export default function Products() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-gray-900">Wholesale Marketplace</h1>
-          <p className="text-gray-500">Discover direct bulk deals from HAM GROUNDS wholesalers.</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('products.title')}</h1>
+          <p className="text-gray-500">{t('products.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="flex items-center bg-gray-100 p-1 rounded-xl">
@@ -61,7 +63,7 @@ export default function Products() {
           </div>
           <button className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-xl font-bold text-sm text-gray-700 hover:bg-gray-50">
             <SlidersHorizontal size={18} />
-            Filters
+            {t('products.filters')}
             <ChevronDown size={14} className="text-gray-400" />
           </button>
         </div>
@@ -73,7 +75,7 @@ export default function Products() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
           <input 
             type="text" 
-            placeholder="Search for products, categories, or wholesalers..."
+            placeholder={t('products.search_placeholder')}
             className="w-full pl-14 pr-6 py-5 bg-white border border-gray-200 rounded-[2rem] text-lg outline-none focus:ring-4 focus:ring-blue-100 shadow-sm transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -82,7 +84,7 @@ export default function Products() {
 
         {categoryFilter && (
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Filtered by:</span>
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t('products.filtered_by')}</span>
             <div className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full border border-blue-100 text-sm font-bold">
               {categoryFilter}
               <button 
@@ -113,15 +115,15 @@ export default function Products() {
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
                <PackageSearch size={40} />
             </div>
-            <h3 className="text-xl font-bold text-gray-900">No products found</h3>
-            <p className="text-gray-500">Try adjusting your search or filters to find what you're looking for.</p>
+            <h3 className="text-xl font-bold text-gray-900">{t('products.no_found_title')}</h3>
+            <p className="text-gray-500">{t('products.no_found_desc')}</p>
           </div>
         )}
       </div>
 
       <div className="pt-10 flex justify-center">
          <button className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all">
-           Load More Products
+           {t('products.load_more')}
          </button>
       </div>
     </div>
